@@ -154,7 +154,7 @@ public class AgentLoop {
             "auto_mine", "build", "craft", "lookup_recipe", "interact_at",
             "collect_items", "eat_item", "use_item", "equip_item", "transfer_items",
             "melee_attack", "todowrite", "task_status", "task_stop",
-            "wait_for", "query_extra_tools", "resident_memory", "inspect_sign", "observe_scene", "resident_work");
+            "wait_for", "query_extra_tools", "resident_memory", "resident_say", "inspect_sign", "observe_scene", "resident_work");
     private static final Set<String> SKILL_ACTION_TOOLS = Set.of(
             "goto", "auto_mine", "build", "melee_attack", "ranged_attack",
             "equip_item", "eat_item", "drop_items", "collect_items",
@@ -290,6 +290,7 @@ public class AgentLoop {
     private volatile PersonaProfile persona;
     private final AtomicReference<ChatMessage> pendingScene = new AtomicReference<>();
     public void observeScene(byte[] png, String description) {
+        if(companion instanceof CompanionEntity resident&&resident.isResident())description += " This image is your private perception. If you want to comment aloud, call resident_say; ordinary assistant text is not heard by anyone.";
         pendingScene.set(new ChatMessage("user", description, null, null,List.of(ChatMessage.PngImage.fromBytes(png))));
         onAmbientEvent("A requested visual observation is ready.");
         wake("scene_ready");
@@ -1592,6 +1593,7 @@ public class AgentLoop {
     private void executeTurn(String trigger, int roundNumber) {
         // 0. Safety cap on tool-call rounds
         if (roundNumber >= (companion instanceof CompanionEntity ce && ce.isResident() ? 5 : MAX_TOOL_ROUNDS)) {
+            if(companion instanceof CompanionEntity ce&&ce.isResident())return;
             System.err.println("[CraftDroid] Reached max tool rounds ("
                     + MAX_TOOL_ROUNDS + ") - stopping turn to prevent infinite loop");
             synchronized (history) {
@@ -1840,6 +1842,13 @@ public class AgentLoop {
         // 5b. Cognitive feedback is applied only to the still-current turn;
         // semantic and plan evidence above remain valid independently.
         analyzeToolResults(assistantMsg.toolCalls(), toolResults);
+
+        // Deliberate dialogue needs no paid follow-up merely to acknowledge that it was spoken.
+        if (companion instanceof CompanionEntity resident && resident.isResident()
+                && assistantMsg.toolCalls().stream().allMatch(c -> c.name().equals("resident_say"))
+                && toolResults.stream().allMatch(r -> r.content()!=null&&r.content().contains("\"accepted\":true"))) {
+            return;
+        }
 
         // 6. Check if any async task was dispatched - if not, loop back
         boolean anyAsync = toolResults.stream()
@@ -2828,8 +2837,8 @@ public class AgentLoop {
      */
     private void speakToOwner(String text) {
         if (companion instanceof CompanionEntity ce && ce.isResident()) {
-            Services.platform().scheduleOnServer(() ->
-                    com.mineagent.engine.resident.Residents.speak(ce, text));
+            // Resident action preambles and API diagnostics are private. Public dialogue
+            // travels only through resident_say and its bounded world speech queue.
             return;
         }
         Services.platform().scheduleOnServer(() -> {
@@ -3634,6 +3643,7 @@ public class AgentLoop {
 
     /** Build the immutable instruction prefix shared by every request. */
     private String buildSystemPrompt() {
+        if(companion instanceof CompanionEntity resident&&resident.isResident())return com.mineagent.engine.resident.ResidentSystemPrompt.text();
         StringBuilder sb = new StringBuilder();
 
         // ── Core identity ──

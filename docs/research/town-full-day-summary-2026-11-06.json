@@ -1,0 +1,72 @@
+{
+  "scenario_status": "passed",
+  "elapsed_s": 1217.133851247,
+  "world_ticks": 24000,
+  "starting_day_time": 6015,
+  "ending_day_time": 30015,
+  "completed_day_cycle": true,
+  "agents": 3,
+  "resumed": true,
+  "attempt_limit": 400,
+  "attempts": 371,
+  "failure": "",
+  "origin": [
+    -13925087,
+    -58,
+    3818355
+  ],
+  "fixture_limits": [
+    "supplied 32x32 flat site",
+    "natural mob spawning disabled in this phase",
+    "random tick speed zero in this phase",
+    "no human players",
+    "Mekanism, AE2 and GuideME loaded",
+    "simplified server-state imagery"
+  ],
+  "successful_http_responses": 341,
+  "cancelled_attempts": 30,
+  "latency_ms": {
+    "median": 1657,
+    "p95": 2612,
+    "max": 4198
+  },
+  "tokens": {
+    "input_tokens": 5585803,
+    "cached_input_tokens": 4348928,
+    "output_tokens": 47361
+  },
+  "final_frame": {
+    "elapsed_s": 1217,
+    "removed_cells": 91,
+    "changed_block_ids": 156,
+    "new_nonair_cells": 57
+  },
+  "chat_count": 253,
+  "heap_used_mib_range": [
+    259,
+    507
+  ],
+  "resident_results": [
+    {
+      "name": "Mira",
+      "id": "5927069f-873b-4470-a64e-f7c8cc0b0a0f",
+      "memory_count": 6,
+      "min_health": 20.0,
+      "observed_dead_samples": 0
+    },
+    {
+      "name": "Luna",
+      "id": "f7a7d577-50a3-4964-9101-daa0d2e70a89",
+      "memory_count": 5,
+      "min_health": 20.0,
+      "observed_dead_samples": 0
+    },
+    {
+      "name": "Nova",
+      "id": "928d8f04-2eef-432c-890c-cf732dbdb5bf",
+      "memory_count": 6,
+      "min_health": 20.0,
+      "observed_dead_samples": 0
+    }
+  ]
+}

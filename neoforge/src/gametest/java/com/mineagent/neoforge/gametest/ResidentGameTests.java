@@ -15,6 +15,8 @@ import net.neoforged.neoforge.gametest.*;
 @PrefixGameTestTemplate(false)
 public class ResidentGameTests {
     public ResidentGameTests(net.neoforged.bus.api.IEventBus bus) {
+        if(System.getProperty("craftdroid.residentProbe","").equals("town")&&Boolean.getBoolean("craftdroid.townResume"))
+            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.server.ServerStartedEvent event)->TownGameTests.restoreClock(event.getServer()));
         if(!System.getProperty("craftdroid.residentProbe","").isBlank())bus.addListener((net.neoforged.neoforge.event.RegisterGameTestsEvent event)->{
             try {
                 if(System.getProperty("craftdroid.residentProbe").equals("town")){event.register(TownGameTests.class);return;}
@@ -135,6 +137,51 @@ public class ResidentGameTests {
                 }finally{for(var id:ids)Residents.remove(id);}
             });
         }catch(Throwable e){for(var id:ids)Residents.remove(id);throw e;}
+    }
+
+    @GameTest(template="empty",batch="placement",timeoutTicks=1000)
+    public static void buildsAroundOccludedCorner(GameTestHelper helper){
+        var level=helper.getLevel();var profile=Residents.create(level.getServer(),level,helper.absolutePos(new BlockPos(1,2,1)),"CornerBuilder",true);
+        var actor=MineAgentEngine.getCompanion(profile.id()).orElseThrow().companion;
+        var target=helper.absolutePos(new BlockPos(3,2,3));var start=helper.absolutePos(new BlockPos(2,2,2));
+        for(var relative:java.util.List.of(new BlockPos(3,2,2),new BlockPos(3,3,2),new BlockPos(2,2,3),new BlockPos(2,3,3)))level.setBlock(helper.absolutePos(relative),Blocks.STONE.defaultBlockState(),3);
+        actor.serverPlayer().teleportTo(start.getX()+.5,start.getY(),start.getZ()+.5);actor.serverPlayer().getInventory().setItem(0,new ItemStack(Items.OAK_PLANKS,8));
+        helper.assertTrue(!com.mineagent.engine.act.Placement.placeHeldBlock(actor.serverPlayer(),target,net.minecraft.world.InteractionHand.MAIN_HAND).placed(),"Initial diagonal approach is occluded by the corner");
+        var record=new com.mineagent.tools.block.BuildTool.BuildTaskRecord("corner_build","place","minecraft:oak_planks",new int[][]{{target.getX(),target.getY(),target.getZ()}});record.extendDeadlineTo(level.getGameTime()+900);
+        var task=new com.mineagent.engine.task.BuildTask(actor,record);task.start();var complete=new java.util.concurrent.atomic.AtomicBoolean();
+        helper.onEachTick(()->{
+            if(complete.get())return;java.util.concurrent.locks.LockSupport.parkNanos(1000000);
+            var state=task.tick();
+            if(state==com.mineagent.api.task.TaskState.SUCCESS){
+                complete.set(true);task.interrupt();
+                helper.assertTrue(level.getBlockState(target).is(Blocks.OAK_PLANKS),"The actual target block is placed after local repositioning");
+                helper.assertTrue(!actor.serverPlayer().blockPosition().equals(start),"The player physically approaches from another cell");
+                helper.assertTrue(actor.serverPlayer().getInventory().countItem(Items.OAK_PLANKS)==7,"Exactly one real block is consumed");
+                Residents.remove(profile.id());helper.succeed();
+            }else if(state==com.mineagent.api.task.TaskState.FAILED){complete.set(true);task.interrupt();Residents.remove(profile.id());throw new IllegalStateException(task.completionMessage(state,false));}
+        });
+    }
+
+    @GameTest(template="empty",templateNamespace="mineagent_test",batch="resident_roof",timeoutTicks=700)
+    public static void buildsCeilingFromGround(GameTestHelper helper){
+        var level=helper.getLevel();var start=helper.absolutePos(new BlockPos(3,2,3));
+        var profile=Residents.create(level.getServer(),level,start,"RoofBuilder",true);
+        var actor=MineAgentEngine.getCompanion(profile.id()).orElseThrow().companion;
+        var target=start.above(2);level.setBlock(target.east(),Blocks.STONE.defaultBlockState(),3);
+        actor.serverPlayer().teleportTo(start.getX()+.5,start.getY(),start.getZ()+.5);
+        actor.serverPlayer().getInventory().setItem(0,new ItemStack(Items.OAK_PLANKS,2));
+        var record=new com.mineagent.tools.block.BuildTool.BuildTaskRecord("ceiling_build","place","minecraft:oak_planks",new int[][]{{target.getX(),target.getY(),target.getZ()}});record.extendDeadlineTo(level.getGameTime()+600);
+        var task=new com.mineagent.engine.task.BuildTask(actor,record);task.start();var complete=new java.util.concurrent.atomic.AtomicBoolean();
+        helper.onEachTick(()->{
+            if(complete.get())return;var state=task.tick();
+            if(state==com.mineagent.api.task.TaskState.SUCCESS){
+                complete.set(true);task.interrupt();
+                helper.assertTrue(level.getBlockState(target).is(Blocks.OAK_PLANKS),"A real ceiling block is placed from below");
+                helper.assertTrue(Math.abs(actor.serverPlayer().getY()-start.getY())<.1,"No climbing or teleport is required to place a reachable ceiling");
+                helper.assertTrue(actor.serverPlayer().getInventory().countItem(Items.OAK_PLANKS)==1,"One carried block is consumed");
+                Residents.remove(profile.id());helper.succeed();
+            }else if(state==com.mineagent.api.task.TaskState.FAILED){complete.set(true);task.interrupt();Residents.remove(profile.id());throw new IllegalStateException(task.completionMessage(state,false));}
+        });
     }
 
     static void ensureProfileCache(net.minecraft.server.MinecraftServer server){

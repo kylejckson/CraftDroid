@@ -82,6 +82,9 @@ public class PlayerNav {
         ensureCurrentLevel(false);
         core.setGoal(new GoalPlaceBlock(x, y, z));
     }
+    public void navigateForPlacement(int x,int y,int z,java.util.List<GoalPlaceBlock.Stand> rejected){
+        ensureCurrentLevel(false);core.setGoal(new GoalPlaceBlock(x,y,z,rejected));
+    }
 
     /**
      * Navigate to an XZ coordinate at any Y level.

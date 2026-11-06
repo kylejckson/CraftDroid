@@ -51,7 +51,12 @@ final class ResidentProbeProvider implements LLMProvider {
         long start=System.nanoTime();
         try {
             LLMResponse response=live?delegate.complete(request):scripted(request);
-            if(hasImage){completedImages.incrementAndGet();if(response.choice()!=null&&response.choice().message()!=null&&response.choice().message().content()!=null)imageDescription=response.choice().message().content().trim();}
+            if(hasImage)completedImages.incrementAndGet();
+            if(completedImages.get()>0){
+                if(response.choice()!=null&&response.choice().message()!=null&&response.choice().message().toolCalls()!=null)
+                    for(var call:response.choice().message().toolCalls())if(call.name().equals("resident_say"))
+                        imageDescription=JsonParser.parseString(call.arguments()).getAsJsonObject().get("text").getAsString().trim();
+            }
             var row=new LinkedHashMap<String,Object>();row.put("attempt",attempt);row.put("paid",live);row.put("elapsed_ms",(System.nanoTime()-start)/1000000);row.put("image",hasImage);
             row.put("finish_reason",Objects.toString(response.finishReason(),""));
             row.put("recent_tool_results",request.messages().stream().filter(m->"tool".equals(m.role())).skip(Math.max(0,request.messages().stream().filter(m->"tool".equals(m.role())).count()-4)).map(m->Objects.toString(m.content(),"")).toList());
@@ -83,7 +88,10 @@ final class ResidentProbeProvider implements LLMProvider {
         }else if(built&&!memoryIssued){
             memoryIssued=true;var args=new JsonObject();args.addProperty("mode","remember");args.addProperty("subject",subject.toString());args.addProperty("kind","promise");args.addProperty("text","I promised to stay away from the orchard and not build there.");message=call("memory","resident_memory",args);
         }else if(built&&!sceneIssued){sceneIssued=true;message=call("scene","observe_scene",new JsonObject());}
-        else message=ChatMessage.assistant(request.messages().stream().anyMatch(m->!m.images().isEmpty())?"I can see the block-color view of the marker and surrounding ground.":"I am continuing the local procedure and waiting for verified observations.");
+        else if(request.messages().stream().anyMatch(m->!m.images().isEmpty())){
+            var args=new JsonObject();args.addProperty("text","I can see the block-color view of the marker and surrounding ground.");
+            message=ChatMessage.assistant("PRIVATE_ACTION_PREAMBLE: image received; this must not become dialogue.",List.of(new ChatMessage.ToolCallRef("probe_speech","resident_say",args.toString())));
+        }else message=ChatMessage.assistant("PRIVATE_ACTION_PREAMBLE: local procedure is continuing.");
         return new LLMResponse("resident-probe-"+attempts.get(),"deepseek-flash",new LLMResponse.Choice(0,message,message.toolCalls()==null?"stop":"tool_calls"),new LLMResponse.Usage(0,0,0),message.toolCalls()==null?"stop":"tool_calls");
     }
     private ChatMessage call(String id,String tool,JsonObject args){return ChatMessage.assistantWithTools(List.of(new ChatMessage.ToolCallRef("probe_"+id,tool,args.toString())));}

@@ -141,6 +141,7 @@ tasks.named('runGametest') {
         if(!resumeTown)delete file(nativeRunDir+'/world')
         if(residentProbe=='town')delete file(nativeRunDir+'/town-images'),file(nativeRunDir+'/town-progress.json'),file(nativeRunDir+'/town-chat.json')
         delete file(nativeRunDir+'/resident-probe.json')
+        delete file(nativeRunDir+'/resident-social-probe.json')
         if(residentProbe in ['live','town']&&!System.getenv('DEEPSEEK_API_KEY')&&!System.getenv('CRAFTDROID_DEEPSEEK_API_KEY'))
             throw new GradleException('Live probe requires DEEPSEEK_API_KEY or CRAFTDROID_DEEPSEEK_API_KEY in the process environment')
         if(withTestMods) {
@@ -173,6 +174,8 @@ tasks.register('verifyResidentGameTests') {
             return
         }
         if (!names.any { it.contains('residentlifecycleandpolicy') }) throw new GradleException('Required NeoForge resident scenario did not execute')
+        if(!names.any{it.contains('buildsaroundoccludedcorner')})throw new GradleException('Occluded placement regression did not execute')
+        if(!names.any{it.contains('buildsceilingfromground')})throw new GradleException('Overhead placement regression did not execute')
         if(!names.any{it.contains('tenresidentswithoutahuman')})throw new GradleException('Native population scenario did not execute')
         if(withTestMods&&!names.any{it.contains('realmachineports')})throw new GradleException('Real-mod scenario did not execute')
         if(residentProbe&&!names.any{it.contains('residentplanscraftsbuildsandremembers')})throw new GradleException('Behavioral resident probe did not execute')

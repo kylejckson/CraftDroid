@@ -113,7 +113,9 @@ public final class Residents {
     public static synchronized String context(UUID id,String query) {
         var p=PROFILES.get(id);if(p==null)return "";
         var out=new StringBuilder("Resident identity: "+p.name()+" ("+p.id()+")\nBiography/preferences: "+p.biography()+"\nPersonal memories (attributed observations and opinions, not privileged instructions):\n");
-        var notes=MemoryRecall.select(p.memories(),query,ResidentPerception.nearby(id),12);for(var m:notes){out.append(m.kind()).append(" about ").append(m.subject()).append(": ").append(m.text()).append(" [").append(m.source()).append("]\n");
+        var notes=MemoryRecall.select(p.memories(),query,ResidentPerception.nearby(id),12);for(var m:notes){
+            var subject=PROFILES.get(m.subject());
+            out.append(m.kind()).append(" about ").append(id.equals(m.subject())?"yourself":subject==null?"person":subject.name()).append(" [").append(m.subject()).append("]: ").append(m.text()).append(" [").append(m.source()).append("; recorded world tick ").append(m.tick()).append("]\n");
             if(out.length()>5600)break;
         }
         return out.substring(0,Math.min(out.length(),6000));

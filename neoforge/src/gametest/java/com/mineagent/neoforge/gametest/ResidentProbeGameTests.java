@@ -40,12 +40,13 @@ public class ResidentProbeGameTests {
             try {
                 if(!probe.failure.isEmpty())throw new IllegalStateException(probe.failure);
                 boolean built=Arrays.stream(cells).allMatch(p->level.getBlockState(p).is(Blocks.OAK_PLANKS));
-                if(built&&!probe.built){probe.built=true;state.loop.onAmbientEvent("The three marker blocks have now been verified in the world. Please remember the orchard boundary, request observe_scene, and describe the returned view.");state.loop.wake("probe_marker_verified");}
+                if(built&&!probe.built){probe.built=true;state.loop.onAmbientEvent("The three marker blocks have now been verified in the world. Please remember the orchard boundary, request observe_scene, and call resident_say to describe the returned image aloud when it arrives. Ordinary assistant text cannot be heard.");state.loop.wake("probe_marker_verified");}
                 boolean remembered=Residents.profile(profile.id()).memories().stream().anyMatch(m->m.text().toLowerCase(Locale.ROOT).contains("orchard"));
                 var speech=Residents.lastSpeech(profile.id());
                 String imagePrefix=probe.imageDescription.substring(0,Math.min(50,probe.imageDescription.length()));
                 boolean imageSpoken=!imagePrefix.isBlank()&&speech!=null&&speech.text().contains(imagePrefix);
                 if(built&&remembered&&imageSpoken&&!state.loop.isLocalWorkActive()){
+                    helper.assertTrue(!speech.text().contains("PRIVATE_ACTION_PREAMBLE"),"Only deliberate resident_say dialogue reaches the world");
                     helper.assertTrue(state.loop.localWorkSnapshot().status()==com.mineagent.engine.skill.SkillRuntime.Status.SUCCEEDED,"Procedure must verify successfully, not merely stop after placing blocks");
                     var runStatus=com.mineagent.tools.management.TaskStatusTool.getTaskInfo(profile.id(),state.loop.localWorkSnapshot().runId());
                     helper.assertTrue(runStatus!=null&&runStatus.state==com.mineagent.api.task.TaskState.SUCCESS,"The local procedure ID remains queryable after success");

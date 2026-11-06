@@ -64,5 +64,17 @@ final class TownSurvey {
         });
         return metadata;
     }
+    Map<String,Integer> census(ServerLevel level){
+        var counts=new TreeMap<String,Integer>();
+        for(int y=0;y<HEIGHT;y++)for(int z=0;z<SIZE;z++)for(int x=0;x<SIZE;x++){
+            var state=level.getBlockState(origin.offset(x,y-1,z));if(state.isAir())continue;
+            String id=BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();counts.merge(id,1,Integer::sum);
+            if(state.getBlock() instanceof net.minecraft.world.level.block.CropBlock crop){
+                counts.merge(id+"[age="+crop.getAge(state)+"]",1,Integer::sum);
+                if(crop.isMaxAge(state))counts.merge("mature_crops",1,Integer::sum);
+            }
+        }
+        return counts;
+    }
     static void flush(){try{RENDER.submit(()->{}).get(15,TimeUnit.SECONDS);}catch(Exception e){throw new IllegalStateException(e);}}
 }

@@ -43,6 +43,7 @@ public class BuildTask extends CompanionTask<BuildTool.BuildTaskRecord>
     /** Placement should resolve promptly; breaking uses a hardness-aware limit. */
     private static final int MAX_PLACE_TICKS = 60;
     private int actTimeoutTicks;
+    private final java.util.List<com.mineagent.engine.pathing.goals.GoalPlaceBlock.Stand> rejectedStands=new java.util.ArrayList<>();
 
     public BuildTask(AgentPlayer player, BuildTool.BuildTaskRecord record) {
         super(player, record);
@@ -66,6 +67,7 @@ public class BuildTask extends CompanionTask<BuildTool.BuildTaskRecord>
         refreshVerifiedPositions();
         actTicks = 0;
         actTimeoutTicks = MAX_PLACE_TICKS;
+        rejectedStands.clear();
         activeBreakTarget = null;
         failReason = null;
         lastPlaceFailure = null;
@@ -91,6 +93,7 @@ public class BuildTask extends CompanionTask<BuildTool.BuildTaskRecord>
         refreshVerifiedPositions();
         actTicks = 0;
         actTimeoutTicks = MAX_PLACE_TICKS;
+        rejectedStands.clear();
         activeBreakTarget = null;
         failReason = null;
         lastPlaceFailure = null;
@@ -237,6 +240,8 @@ public class BuildTask extends CompanionTask<BuildTool.BuildTaskRecord>
                         TaskContext.syncInventory(sp);
                         recordPlacedAsset(target, newState);
                         advancePosition();
+                    } else if (retryPlacementApproach()) {
+                        return;
                     } else if (actTicks > MAX_PLACE_TICKS) {
                         failReason = "Failed to place block at (" + pos[0] + ","
                                 + pos[1] + "," + pos[2] + "): " + lastPlaceFailure;
@@ -283,6 +288,8 @@ public class BuildTask extends CompanionTask<BuildTool.BuildTaskRecord>
                 TaskContext.syncInventory(sp);
                 recordPlacedAsset(target, newState);
                 advancePosition();
+            } else if (retryPlacementApproach()) {
+                return;
             } else if (actTicks > MAX_PLACE_TICKS) {
                 failReason = "Failed to place block at (" + pos[0] + ","
                         + pos[1] + "," + pos[2] + "): " + lastPlaceFailure
@@ -382,6 +389,7 @@ public class BuildTask extends CompanionTask<BuildTool.BuildTaskRecord>
         }
         actTicks = 0;
         actTimeoutTicks = MAX_PLACE_TICKS;
+        rejectedStands.clear();
         lastPlaceFailure = null;
 
         if (currentIndex >= record.positions.length) {
@@ -399,11 +407,21 @@ public class BuildTask extends CompanionTask<BuildTool.BuildTaskRecord>
         }
         int[] pos = record.positions[currentIndex];
         if ("place".equals(record.mode)) {
-            nav.navigateForPlacement(pos[0], pos[1], pos[2]);
+            nav.navigateForPlacement(pos[0],pos[1],pos[2],rejectedStands);
         } else {
             nav.navigateToBlock(pos[0], pos[1], pos[2]);
         }
         phase = Phase.NAVIGATE;
+    }
+
+    private boolean retryPlacementApproach(){
+        if(actTicks<10||rejectedStands.size()>=4||lastPlaceFailure==null)return false;
+        String reason=lastPlaceFailure.toLowerCase(java.util.Locale.ROOT);
+        if(!reason.contains("occluded")&&!reason.contains("support face")&&!reason.contains("outside interaction reach"))return false;
+        var pos=TaskContext.serverPlayer(player).blockPosition();
+        var stand=new com.mineagent.engine.pathing.goals.GoalPlaceBlock.Stand(pos.getX(),pos.getY(),pos.getZ());
+        if(rejectedStands.contains(stand))return false;
+        rejectedStands.add(stand);actTicks=0;cancelNav();navigateToCurrent();return true;
     }
 
     private void refreshVerifiedPositions() {

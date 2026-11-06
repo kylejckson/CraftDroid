@@ -46,6 +46,7 @@ public final class ToolRegistration {
         ToolRegistry.register(new com.mineagent.tools.inventory.TransferPortTool());
         // Movement
         ToolRegistry.register(new com.mineagent.tools.management.ResidentMemoryTool());
+        ToolRegistry.register(new com.mineagent.tools.management.ResidentSayTool());
         ToolRegistry.register(new com.mineagent.tools.management.ResidentWorkTool());
         ToolRegistry.register(new com.mineagent.tools.perception.InspectSignTool());
         ToolRegistry.register(new com.mineagent.tools.perception.ObserveSceneTool());
