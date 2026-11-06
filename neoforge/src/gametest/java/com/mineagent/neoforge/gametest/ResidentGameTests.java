@@ -17,6 +17,7 @@ public class ResidentGameTests {
     public ResidentGameTests(net.neoforged.bus.api.IEventBus bus) {
         if(!System.getProperty("craftdroid.residentProbe","").isBlank())bus.addListener((net.neoforged.neoforge.event.RegisterGameTestsEvent event)->{
             try {
+                if(System.getProperty("craftdroid.residentProbe").equals("town")){event.register(TownGameTests.class);return;}
                 event.register(ResidentProbeGameTests.class.getDeclaredMethod("residentPlansCraftsBuildsAndRemembers",GameTestHelper.class));
                 if(System.getProperty("craftdroid.residentProbe").equals("live"))event.register(ResidentProbeGameTests.class.getDeclaredMethod("residentsConverseAndKeepIndividualRelationshipNotes",GameTestHelper.class));
             }catch(NoSuchMethodException e){throw new IllegalStateException(e);}
@@ -75,6 +76,21 @@ public class ResidentGameTests {
             liveState.lifecycle.pauseByOwner();
             helper.assertTrue(liveState.lifecycle.isPaused(),"OP pause holds body scheduler");
             helper.assertTrue(!liveState.loop.isLocalWorkActive(),"Pause cancels local execution, not only HTTP calls");
+            var status=com.mineagent.tools.management.TaskStatusTool.getTaskInfo(p.id(),work.runId());
+            helper.assertTrue(status!=null&&status.state==com.mineagent.api.task.TaskState.CANCELLED,"Procedure IDs have authoritative terminal status");
+            var stopResident=Residents.create(level.getServer(),level,pos,"StopResident",true);
+            try {
+                var stopState=MineAgentEngine.getCompanion(stopResident.id()).orElseThrow();
+                var stopWork=stopState.loop.startResidentWork("Stop test","[{\"tool\":\"get_self_status\"}]");
+                helper.assertTrue(stopWork.accepted(),"A local procedure can be admitted for stop testing");
+                var stopArgs=new com.google.gson.JsonObject();stopArgs.addProperty("task_id",stopWork.runId());var stopReply=new java.util.concurrent.atomic.AtomicReference<String>();
+                new com.mineagent.tools.management.TaskStopTool().onServerCall("stop_test",stopArgs,stopState.companion,stopReply::set);
+                helper.assertTrue(stopReply.get().contains("CANCELLED")&&!stopState.loop.isLocalWorkActive(),"task_stop cancels a whole local procedure");
+            }finally{Residents.remove(stopResident.id());}
+            com.mineagent.api.task.CompanionTickDispatcher.submit(body,new com.mineagent.api.task.TaskRecord("cancel_before_admission"){});
+            com.mineagent.api.task.CompanionTickDispatcher.submit(body,new com.mineagent.api.task.TaskRecord("keep_queued"){});
+            helper.assertTrue(com.mineagent.api.task.CompanionTickDispatcher.cancel(p.id(),"cancel_before_admission")==1,"An exact queued step can be cancelled before admission");
+            var queued=com.mineagent.api.task.CompanionTickDispatcher.drain();helper.assertTrue(queued.size()==1&&queued.getFirst().record().toolCallId().equals("keep_queued"),"Queued cancellation preserves unrelated work");
             var door=helper.absolutePos(new BlockPos(6,2,3));var top=door.above();
             AgentProtection.RULES.put(new RegionRules.Region("neo_door",level.dimension().location().toString(),top.getX(),top.getY(),top.getZ(),top.getX(),top.getY(),top.getZ(),java.util.Set.of(RegionRules.Action.PLACE)));
             body.serverPlayer().getInventory().setItem(0,new ItemStack(Items.OAK_DOOR));

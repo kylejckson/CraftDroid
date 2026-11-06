@@ -43,7 +43,8 @@ sourceSets {
 
 def withTestMods = providers.gradleProperty('neoforge_modpack').map { it.toBoolean() }.getOrElse(false)
 def residentProbe = providers.gradleProperty('resident_probe').getOrElse('')
-if(!(residentProbe in ['', 'offline', 'live']))throw new GradleException('resident_probe must be offline or live')
+if(!(residentProbe in ['', 'offline', 'live', 'town']))throw new GradleException('resident_probe must be offline, live or town')
+def resumeTown = providers.gradleProperty('town_resume').map{it.toBoolean()}.getOrElse(false)
 def nativeReport = residentProbe ? "gametest-probe-${residentProbe}-results.xml" : withTestMods ? 'gametest-modpack-results.xml' : 'gametest-results.xml'
 def nativeRunDir = residentProbe ? "build/gametest-probe-${residentProbe}" : withTestMods ? 'build/gametest-modpack' : 'build/gametest'
 
@@ -85,13 +86,19 @@ neoForge {
             mods = [project.neoForge.mods.getByName('mineagent'), project.neoForge.mods.getByName('mineagent_test')]
             gameDirectory = file(nativeRunDir)
             systemProperty 'craftdroid.residentProbe', residentProbe
+            if(residentProbe=='town') {
+                systemProperty 'craftdroid.townResume', resumeTown.toString()
+                systemProperty 'craftdroid.townSeconds', providers.gradleProperty('town_seconds').getOrElse('300')
+                systemProperty 'craftdroid.townAgents', providers.gradleProperty('town_agents').getOrElse('3')
+                systemProperty 'craftdroid.townRequests', providers.gradleProperty('town_requests').getOrElse('120')
+            }
             // Java HTTP clients do not read HTTPS_PROXY. Preserve the configured JVM proxy and CA trust for opt-in live probes.
             if(residentProbe) ['http.proxyHost','http.proxyPort','https.proxyHost','https.proxyPort','http.nonProxyHosts','javax.net.ssl.trustStore'].each { key ->
                 if(System.getProperty(key))systemProperty key,System.getProperty(key)
             }
             jvmArgument '-Xmx3G'
             systemProperty 'craftdroid.modpackTests', withTestMods.toString()
-            systemProperty 'neoforge.enabledGameTestNamespaces', 'mineagent_test'
+            systemProperty 'neoforge.enabledGameTestNamespaces', residentProbe=='town'?'mineagent_town_test':'mineagent_test'
             systemProperty 'neoforge.gameTestServer', 'true'
             systemProperty 'craftdroid.testReport', layout.buildDirectory.file(nativeReport).get().asFile.absolutePath
         }
@@ -118,12 +125,23 @@ processResources {
 }
 
 tasks.named('runGametest') {
-    timeout = java.time.Duration.ofMinutes(5)
+    timeout = java.time.Duration.ofMinutes(residentProbe=='town'?35:5)
     doFirst {
         delete layout.buildDirectory.file(nativeReport).get().asFile
-        delete file(nativeRunDir+'/world')
+        if(residentProbe=='town'&&file(nativeRunDir+'/town-report.json').exists()){
+            def saved=new groovy.json.JsonSlurper().parse(file(nativeRunDir+'/town-report.json'))
+            copy { from file(nativeRunDir); include 'town-report.json','town-progress.json','town-chat.json','town-images/**'; into file(nativeRunDir+'/history/'+System.currentTimeMillis()) }
+            if(resumeTown){
+                def residents=file(nativeRunDir+'/world/data/craftdroid/residents.json')
+                if(!residents.exists())throw new GradleException('Cannot resume without a saved world')
+                def data=new groovy.json.JsonSlurper().parse(residents)
+                if(!data.residents)residents.text=groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson([version:1,residents:saved.profiles]))
+            }
+        }else if(resumeTown)throw new GradleException('No previous town checkpoint to resume')
+        if(!resumeTown)delete file(nativeRunDir+'/world')
+        if(residentProbe=='town')delete file(nativeRunDir+'/town-images'),file(nativeRunDir+'/town-progress.json'),file(nativeRunDir+'/town-chat.json')
         delete file(nativeRunDir+'/resident-probe.json')
-        if(residentProbe=='live'&&!System.getenv('DEEPSEEK_API_KEY')&&!System.getenv('CRAFTDROID_DEEPSEEK_API_KEY'))
+        if(residentProbe in ['live','town']&&!System.getenv('DEEPSEEK_API_KEY')&&!System.getenv('CRAFTDROID_DEEPSEEK_API_KEY'))
             throw new GradleException('Live probe requires DEEPSEEK_API_KEY or CRAFTDROID_DEEPSEEK_API_KEY in the process environment')
         if(withTestMods) {
             def lock = new groovy.json.JsonSlurper().parse(file('src/gametest/resources/modpack-lock.json'))
@@ -149,6 +167,11 @@ tasks.register('verifyResidentGameTests') {
         ['failure','error','skipped'].each { if(xml.getElementsByTagName(it).length) throw new GradleException("NeoForge tests contain ${it}") }
         def cases = xml.getElementsByTagName('testcase')
         def names = (0..<cases.length).collect { cases.item(it).getAttribute('name').toLowerCase() }
+        if(residentProbe=='town') {
+            if(!names.any{it.contains('residentsliveinacommunity')})throw new GradleException('Town soak scenario did not execute')
+            logger.lifecycle("Verified ${cases.length} native town-life scenarios")
+            return
+        }
         if (!names.any { it.contains('residentlifecycleandpolicy') }) throw new GradleException('Required NeoForge resident scenario did not execute')
         if(!names.any{it.contains('tenresidentswithoutahuman')})throw new GradleException('Native population scenario did not execute')
         if(withTestMods&&!names.any{it.contains('realmachineports')})throw new GradleException('Real-mod scenario did not execute')

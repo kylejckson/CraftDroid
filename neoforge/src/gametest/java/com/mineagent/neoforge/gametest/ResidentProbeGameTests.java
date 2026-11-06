@@ -47,6 +47,8 @@ public class ResidentProbeGameTests {
                 boolean imageSpoken=!imagePrefix.isBlank()&&speech!=null&&speech.text().contains(imagePrefix);
                 if(built&&remembered&&imageSpoken&&!state.loop.isLocalWorkActive()){
                     helper.assertTrue(state.loop.localWorkSnapshot().status()==com.mineagent.engine.skill.SkillRuntime.Status.SUCCEEDED,"Procedure must verify successfully, not merely stop after placing blocks");
+                    var runStatus=com.mineagent.tools.management.TaskStatusTool.getTaskInfo(profile.id(),state.loop.localWorkSnapshot().runId());
+                    helper.assertTrue(runStatus!=null&&runStatus.state==com.mineagent.api.task.TaskState.SUCCESS,"The local procedure ID remains queryable after success");
                     helper.assertTrue(state.companion.serverPlayer().getInventory().countItem(Items.OAK_LOG)==1,"A real log was consumed, without creative inventory");
                     helper.assertTrue(probe.samples.stream().anyMatch(s->((List<?>)s.getOrDefault("tools",List.of())).contains("resident_work")),"The actual model/tool route admitted local work");
                     probe.outcome="passed";cleanup.run();helper.succeed();

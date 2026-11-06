@@ -21,7 +21,7 @@ On a 4GB server, begin with one or two agents sharing a pregenerated area. Ten i
 
 ## Validation status
 
-The component suite (295 tests) and dual-loader release checks pass. See the [dated validation evidence](RESIDENT_VALIDATION.md). Native Fabric scenarios and a real NeoForge dedicated-server scenario exercise resident identity, inventory restoration, protection, no-PvP, and server-only PNG capture. Short live DeepSeek crafting/building, spoken image feedback, two-resident dialogue and durable relationship notes now pass; see the [live validation record](research/live-residents-2026-11-06.md). Sustained autonomous gameplay remains a separate validation gate.
+The component suite (296 tests) and dual-loader release checks pass. See the [dated validation evidence](RESIDENT_VALIDATION.md). Native Fabric scenarios and a real NeoForge dedicated-server scenario exercise resident identity, inventory restoration, protection, no-PvP, and server-only PNG capture. Short live DeepSeek crafting/building, spoken image feedback, two-resident dialogue and durable relationship notes now pass; see the [live validation record](research/live-residents-2026-11-06.md). Sustained autonomous gameplay remains a separate validation gate.
 
 ## Resident controls (implemented)
 
@@ -70,3 +70,8 @@ python scripts/provision-neoforge-tests.py
 ```
 
 CI preserves the native XML and server logs. Each run uses a fresh disposable world under `neoforge/build/`; normal worlds are untouched. Native runs cap the Java heap at 3GB. A ten-resident smoke scenario checks ownerless paused bodies remain present and alive without API spending, and reports heap and loaded chunks. GameTest advances ticks without normal real-time pacing, so its elapsed time is not a TPS benchmark. No explicit per-resident simulation-ticket cap is currently implemented; navigation/perception are loaded-only, but vanilla server view/simulation distances and scattered residents still control much of chunk cost. Begin with a shared pregenerated area and one or two active model-driven residents on a 4GB host.
+
+
+## Town-life experiments
+
+See the [town-life test journal and actual server snapshots](research/town-life-2026-11-06.md) for a budget-limited discovery run, a successful five-minute continuation, the fixes found through testing, and the explicit paid commands for starting or resuming an isolated town. These experiments preserve paused residents, inventories, notes and world construction between server processes.

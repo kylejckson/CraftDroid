@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.*;
 /** Opt-in test transport. Live runs have a hard attempt cap and never log credentials or request bodies. */
 final class ResidentProbeProvider implements LLMProvider {
     final boolean live;
+    final int attemptLimit;
     final AtomicInteger attempts=new AtomicInteger(), images=new AtomicInteger(), completedImages=new AtomicInteger(), heardResidentInputs=new AtomicInteger();
     final List<Map<String,Object>> samples=new CopyOnWriteArrayList<>();
     final LLMProvider delegate=OpenAICompatibleProvider.deepseek();
@@ -20,7 +21,8 @@ final class ResidentProbeProvider implements LLMProvider {
     volatile boolean built,workIssued,memoryIssued,sceneIssued;
     volatile String failure="", imageDescription="", outcome="running";
 
-    ResidentProbeProvider(boolean live,UUID subject,BlockPos[] positions){this.live=live;this.subject=subject;this.positions=positions.clone();}
+    ResidentProbeProvider(boolean live,UUID subject,BlockPos[] positions){this(live,subject,positions,live?12:64);}
+    ResidentProbeProvider(boolean live,UUID subject,BlockPos[] positions,int attemptLimit){this.live=live;this.subject=subject;this.positions=positions.clone();this.attemptLimit=attemptLimit;}
     @Override public LLMProvider newSession(){
         // A distinct monitor per resident matches production transports; budget and evidence remain shared.
         return new LLMProvider(){
@@ -42,8 +44,8 @@ final class ResidentProbeProvider implements LLMProvider {
         return complete(new LLMRequest(url,key,model,messages,List.of(),tools,temperature,maxTokens,effort,null,null,null,java.time.Duration.ofSeconds(30),false));
     }
     @Override public LLMResponse complete(LLMRequest request){
-        int attempt=attempts.incrementAndGet();int limit=live?12:64;
-        if(attempt>limit){failure="request_budget_exhausted";throw new LLMProviderException("Resident probe request budget exhausted",null,false,null);}
+        int attempt=attempts.incrementAndGet();
+        if(attempt>attemptLimit){failure="request_budget_exhausted";throw new LLMProviderException("Resident probe request budget exhausted",null,false,null);}
         if(request.messages().stream().anyMatch(m->m.content()!=null&&m.content().contains("Heard resident ")))heardResidentInputs.incrementAndGet();
         boolean hasImage=request.messages().stream().anyMatch(m->!m.images().isEmpty());if(hasImage)images.incrementAndGet();
         long start=System.nanoTime();
@@ -55,7 +57,7 @@ final class ResidentProbeProvider implements LLMProvider {
             row.put("recent_tool_results",request.messages().stream().filter(m->"tool".equals(m.role())).skip(Math.max(0,request.messages().stream().filter(m->"tool".equals(m.role())).count()-4)).map(m->Objects.toString(m.content(),"")).toList());
             if(response.usage()!=null){row.put("input_tokens",response.usage().promptTokens());row.put("output_tokens",response.usage().completionTokens());row.put("cached_input_tokens",response.usage().cachedPromptTokens());}
             if(response.choice()!=null&&response.choice().message()!=null){var calls=response.choice().message().toolCalls();row.put("tools",calls==null?List.of():calls.stream().map(ChatMessage.ToolCallRef::name).toList());
-                if(calls!=null)row.put("tool_arguments",calls.stream().map(c->Map.of("tool",c.name(),"arguments",c.arguments())).toList());}
+                if(calls!=null)row.put("tool_arguments",calls.stream().map(c->Map.of("id",c.id(),"tool",c.name(),"arguments",c.arguments())).toList());}
             samples.add(row);return response;
         }catch(RuntimeException error){
             Integer status=error instanceof LLMProviderException p?p.statusCode():null;

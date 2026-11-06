@@ -23,6 +23,13 @@ public final class CompanionTickDispatcher {
                 java.util.Objects.requireNonNull(record, "record")));
     }
 
+    /** Cancel an exact queued action before admission; unrelated companions/tasks remain untouched. */
+    public static int cancel(java.util.UUID companionId,String taskId) {
+        var removed=new java.util.concurrent.atomic.AtomicInteger();
+        PENDING.removeIf(p->{boolean match=p.player().companionId().equals(companionId)&&p.record().toolCallId().equals(taskId);if(match)removed.incrementAndGet();return match;});
+        return removed.get();
+    }
+
     /** Drain and return all pending tasks. Called once per tick on the server thread. */
     public static java.util.List<PendingTask> drain() {
         var list = new java.util.ArrayList<PendingTask>();

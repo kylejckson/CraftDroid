@@ -164,7 +164,7 @@ public final class Residents {
                 continue;
             }
             if(p.paused()||!hasCredentials())continue;
-            if(ticks>=NEXT_DECISION.getOrDefault(p.id(),20L)&&!s.loop.isThinking()&&!s.auction.hasRunningTask()
+            if(ticks>=NEXT_DECISION.getOrDefault(p.id(),20L)&&!s.loop.isThinking()&&!s.auction.hasRunningTask()&&!s.loop.isLocalWorkActive()
                     &&thinking<settings.maxConcurrentTurns()) {
                 s.loop.onAmbientEvent("Choose a useful next goal based on current needs, interests, relationships and projects. Continue unfinished work if still worthwhile. You may gather, craft, build, farm, explore or socialize. Use observed facts and tools, and keep personal memories with resident_memory.");
                 s.loop.wake("resident_goal_review");thinking++;
@@ -192,7 +192,7 @@ public final class Residents {
     public static synchronized void speak(CompanionEntity speaker,String text) {
         UUID id=speaker.companionId();var state=MineAgentEngine.getCompanion(id).orElse(null);
         if(!PROFILES.containsKey(id)||state==null||state.lifecycle.isPaused()||state.lifecycle.isDead())return;
-        String bounded=ResidentProfile.bounded(text,600);if(bounded.isBlank())return;
+        String bounded=ResidentProfile.bounded(text==null?null:text.replace("[NO_ACTION]",""),600);if(bounded.isBlank())return;
         var last=LAST_SPEECH.get(id);if(last!=null&&last.text().equals(bounded))return;
         if(ticks<NEXT_SPEECH.getOrDefault(id,0L)){
             var queue=PENDING_SPEECH.computeIfAbsent(id,k->new ArrayDeque<>());

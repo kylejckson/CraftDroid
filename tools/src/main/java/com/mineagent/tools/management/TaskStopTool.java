@@ -47,6 +47,11 @@ public class TaskStopTool implements Tool {
             return;
         }
 
+        var local=com.mineagent.engine.MineAgentEngine.getCompanion(player.companionId());
+        if(local.isPresent()&&local.get().loop.stopLocalWork(taskId)){
+            reply.accept("{\"success\":true,\"task_id\":\""+taskId+"\",\"state\":\"CANCELLED\"}");return;
+        }
+
         // Check if the task exists in TaskStatusTool's tracking
         var taskInfo = TaskStatusTool.getTaskInfo(player.companionId(), taskId);
         if (taskInfo == null) {

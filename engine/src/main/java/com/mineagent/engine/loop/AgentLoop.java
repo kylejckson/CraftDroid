@@ -689,7 +689,10 @@ public class AgentLoop {
         // storms and also caused the turn-final inbox check to start an extra
         // request even without wake(). LiveBodyState/RealtimeCognition already
         // carry routine evidence, so only deliberation events enter the inbox.
-        if (isDeliberationEvent(narrative)
+        var local=skillRuntime.snapshot();
+        boolean localStepSuccess=local.runId()!=null&&narrative.startsWith("[TASK_FINISHED]")
+                &&narrative.contains("task_id="+local.runId()+":")&&narrative.contains("state=SUCCESS");
+        if (!localStepSuccess && isDeliberationEvent(narrative)
                 && enqueueInbox("[BODY] " + narrative)) {
             wake("body_log");
         }
@@ -897,6 +900,7 @@ public class AgentLoop {
             // thread. Each transition is bounded to one step per tick.
             if (!suspended) {
                 skillRuntime.tick(gameTick);
+                if(skillRuntime.active())publishLocalWork(gameTick);
                 mechanismExplorer.tick(gameTick);
             }
             if (skillRuntime.active()) {
@@ -1237,6 +1241,7 @@ public class AgentLoop {
                     "running", null, 1.0, "skill_runtime", result.runId(),
                     gameTick, 1_200L, false);
         }
+        if(result.accepted())publishLocalWork(gameTick);
         return result;
     }
 
@@ -1256,7 +1261,25 @@ public class AgentLoop {
             planner.bindTask(result.runId(),"execute_skill",contract,tick);
             rollingPlanner.onTaskAccepted(result.runId(),"execute_skill",TaskSnapshot.running("work",goal),tick);
         }
+        if(result.accepted())publishLocalWork(tick);
         return result;
+    }
+
+    public boolean stopLocalWork(String runId){
+        var snapshot=skillRuntime.snapshot();
+        if(!skillRuntime.active()||!Objects.equals(snapshot.runId(),runId))return false;
+        skillRuntime.cancel("Stopped by task_stop",currentGameTickSafe());return true;
+    }
+    private void publishLocalWork(long tick){
+        var value=skillRuntime.snapshot();if(value.runId()==null)return;
+        TaskState state=switch(value.status()){
+            case SUCCEEDED -> TaskState.SUCCESS;
+            case FAILED,NEEDS_REPLAN -> TaskState.FAILED;
+            case CANCELLED -> TaskState.CANCELLED;
+            default -> TaskState.RUNNING;
+        };
+        com.mineagent.tools.management.TaskStatusTool.updateTaskInfo(companion.companionId(),value.runId(),"local_procedure",state,value.lastEvidence(),null,
+                Math.max(0,tick-value.startedTick()),TaskSnapshot.progress("procedure_"+value.status().name().toLowerCase(Locale.ROOT),value.lastEvidence(),value.stepIndex(),value.stepCount(),null,null,null,null,value.lastEvidence(),value.stepIndex()));
     }
 
     /** Called on the server thread by SkillRuntime; the scheduler still owns body admission. */
@@ -1359,6 +1382,8 @@ public class AgentLoop {
     private void cancelSkillAction(String actionId) {
         if (actionId == null || actionId.isBlank()) return;
         try {
+            int removed=CompanionTickDispatcher.cancel(companion.companionId(),actionId);
+            if(removed>0)com.mineagent.tools.management.TaskStatusTool.updateTaskInfo(companion.companionId(),actionId,"local_step",TaskState.CANCELLED,"Cancelled before body admission",null,0);
             MineAgentEngine.getCompanion(companion.companionId())
                     .ifPresent(state -> state.auction.cancelTask(actionId));
         } catch (Throwable failure) {
@@ -1396,6 +1421,7 @@ public class AgentLoop {
 
     private void onSkillRuntimeCompleted(SkillRuntime.Snapshot snapshot) {
         long gameTick = snapshot.updatedTick();
+        publishLocalWork(gameTick);
         boolean success = snapshot.status() == SkillRuntime.Status.SUCCEEDED;
         TaskState taskState = success ? TaskState.SUCCESS
                 : snapshot.status() == SkillRuntime.Status.CANCELLED
@@ -1763,7 +1789,8 @@ public class AgentLoop {
         //    MAX_REMEDIATION_ROUNDS (currently 1) so worst case is one
         //    extra LLM call per text-only response.
         if (assistantMsg.toolCalls() == null || assistantMsg.toolCalls().isEmpty()) {
-            if (roundNumber == 0 && assistantMsg.content() != null
+            if (!(companion instanceof CompanionEntity resident && resident.isResident())
+                    && roundNumber == 0 && assistantMsg.content() != null
                     && !assistantMsg.content().isBlank()
                     && !hasExplicitNoActionMarker(assistantMsg.content())
                     && remediationRoundCounter < MAX_REMEDIATION_ROUNDS) {
@@ -3610,7 +3637,9 @@ public class AgentLoop {
         StringBuilder sb = new StringBuilder();
 
         // ── Core identity ──
-        sb.append("You are CraftDroid, an AI player in Minecraft.\n");
+        sb.append(companion instanceof CompanionEntity resident && resident.isResident()
+                ? "You are an independent Minecraft inhabitant. Your own current name and UUID are given in resident identity context. CraftDroid is the software, not your personal name.\n"
+                : "You are CraftDroid, an AI player in Minecraft.\n");
         if (companion instanceof CompanionEntity ce && ce.isResident()) {
             sb.append("You are an independent server inhabitant, not a human's servant. Choose your own worthwhile goals, interests, projects and relationships.\n");
             sb.append("Cooperate, negotiate, socialize or compete peacefully. Never attack players or other agents, deliberately damage others' work, or take their possessions without permission.\n");
@@ -3867,7 +3896,7 @@ public class AgentLoop {
 
         if (companion instanceof com.mineagent.engine.entity.CompanionEntity resident && resident.isResident()) {
             sb.append("\n## Independent resident interpretation\nYou have no human owner. References to an owner above describe legacy companion facilities, not a person commanding you. You choose your own goals and may accept or decline ordinary player requests. OP policy and protection zones are mandatory. Compete peacefully: no PvP, deliberate griefing or stealing player property.\n");
-            sb.append("Build a life through projects, shelter, food, craft, exploration and social connections. Use resident_work for bounded physical sequences so your body keeps working between model turns. Talk with nearby people and residents; coordinate community work through coordinate_team. Relationships are personal evolving notes, with no required romance, fixed stages or automatic mutual agreement. Record current goals, unfinished work, meaningful events, boundaries and relationship changes using resident_memory. Recall older relevant notes before acting on someone else's property or commitments. React to weather and visible surroundings naturally; do not invent observations.\n");
+            sb.append("Build a life through projects, shelter, food, craft, exploration and social connections. Use resident_work for bounded physical sequences so your body keeps working between model turns. Use your assigned current name; do not rename yourself or other residents in conversation. Public chat is an in-world voice: usually one or two brief sentences, with no tool names, UUIDs, markdown headings or executor-status reports. Routine inventory checks need no spoken preface. Pure conversation is intentional and does not need a [NO_ACTION] marker. Let running procedures finish; their terminal event wakes you, so do not poll status or repeatedly say you are waiting. Talk with nearby people and residents; coordinate community work through coordinate_team. Relationships are personal evolving notes, with no required romance, fixed stages or automatic mutual agreement. Record current goals, unfinished work, meaningful events, boundaries and relationship changes using resident_memory. Recall older relevant notes before acting on someone else's property or commitments. React to weather and visible surroundings naturally; do not invent observations.\n");
         }
         return sb.toString();
     }
