@@ -15,6 +15,12 @@ import net.neoforged.neoforge.gametest.*;
 @PrefixGameTestTemplate(false)
 public class ResidentGameTests {
     public ResidentGameTests(net.neoforged.bus.api.IEventBus bus) {
+        if(!System.getProperty("craftdroid.residentProbe","").isBlank())bus.addListener((net.neoforged.neoforge.event.RegisterGameTestsEvent event)->{
+            try {
+                event.register(ResidentProbeGameTests.class.getDeclaredMethod("residentPlansCraftsBuildsAndRemembers",GameTestHelper.class));
+                if(System.getProperty("craftdroid.residentProbe").equals("live"))event.register(ResidentProbeGameTests.class.getDeclaredMethod("residentsConverseAndKeepIndividualRelationshipNotes",GameTestHelper.class));
+            }catch(NoSuchMethodException e){throw new IllegalStateException(e);}
+        });
         if(Boolean.getBoolean("craftdroid.modpackTests"))bus.addListener((net.neoforged.neoforge.event.RegisterGameTestsEvent event)->event.register(RealModGameTests.class));
         if(Boolean.getBoolean("neoforge.gameTestServer")) {
             try {

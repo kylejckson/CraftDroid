@@ -36,12 +36,18 @@ jobs:
           chmod +x gradlew
           ./gradlew --no-daemon prepareReleaseNotes verifyReleaseArtifacts
 
+      - name: Rehearse resident planning, physical execution, memory and spoken image feedback without API spending
+        run: ./gradlew --no-daemon -President_probe=offline :neoforge:verifyResidentGameTests
+
       - name: Upload test evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: craftdroid-test-evidence
           path: |
+            neoforge/build/gametest-probe-offline-results.xml
+            neoforge/build/gametest-probe-offline/resident-probe.json
+            neoforge/build/gametest-probe-offline/logs/latest.log
             neoforge/build/gametest-results.xml
             neoforge/build/gametest/logs/latest.log
             fabric/build/gametest-results.xml

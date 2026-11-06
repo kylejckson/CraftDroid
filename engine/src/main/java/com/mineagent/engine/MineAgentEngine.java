@@ -786,9 +786,7 @@ public final class MineAgentEngine {
             body.setCustomNameVisible(true);
             setTabListDisplay(body, profile.name());
             var settings = com.mineagent.engine.resident.Residents.settings();
-            String key = config.llm().apiKey();
-            String environmentKey = System.getenv("CRAFTDROID_DEEPSEEK_API_KEY");
-            if (environmentKey != null && !environmentKey.isBlank()) key = environmentKey;
+            String key = com.mineagent.engine.resident.Residents.apiKey();
             loop = new AgentLoop(citizen, settings.provider(), key, settings.model(),
                     settings.baseUrl(), .7, settings.maxOutputTokens(), "off");
             loop.setPersonality(profile.persona().toProfile());

@@ -42,7 +42,10 @@ sourceSets {
 }
 
 def withTestMods = providers.gradleProperty('neoforge_modpack').map { it.toBoolean() }.getOrElse(false)
-def nativeReport = withTestMods ? 'gametest-modpack-results.xml' : 'gametest-results.xml'
+def residentProbe = providers.gradleProperty('resident_probe').getOrElse('')
+if(!(residentProbe in ['', 'offline', 'live']))throw new GradleException('resident_probe must be offline or live')
+def nativeReport = residentProbe ? "gametest-probe-${residentProbe}-results.xml" : withTestMods ? 'gametest-modpack-results.xml' : 'gametest-results.xml'
+def nativeRunDir = residentProbe ? "build/gametest-probe-${residentProbe}" : withTestMods ? 'build/gametest-modpack' : 'build/gametest'
 
 dependencies {
     implementation project(':api')
@@ -80,7 +83,12 @@ neoForge {
             type = "gameTestServer"
             sourceSet = sourceSets.gametest
             mods = [project.neoForge.mods.getByName('mineagent'), project.neoForge.mods.getByName('mineagent_test')]
-            gameDirectory = file(withTestMods ? 'build/gametest-modpack' : 'build/gametest')
+            gameDirectory = file(nativeRunDir)
+            systemProperty 'craftdroid.residentProbe', residentProbe
+            // Java HTTP clients do not read HTTPS_PROXY. Preserve the configured JVM proxy and CA trust for opt-in live probes.
+            if(residentProbe) ['http.proxyHost','http.proxyPort','https.proxyHost','https.proxyPort','http.nonProxyHosts','javax.net.ssl.trustStore'].each { key ->
+                if(System.getProperty(key))systemProperty key,System.getProperty(key)
+            }
             jvmArgument '-Xmx3G'
             systemProperty 'craftdroid.modpackTests', withTestMods.toString()
             systemProperty 'neoforge.enabledGameTestNamespaces', 'mineagent_test'
@@ -113,7 +121,10 @@ tasks.named('runGametest') {
     timeout = java.time.Duration.ofMinutes(5)
     doFirst {
         delete layout.buildDirectory.file(nativeReport).get().asFile
-        delete file(withTestMods ? 'build/gametest-modpack/world' : 'build/gametest/world')
+        delete file(nativeRunDir+'/world')
+        delete file(nativeRunDir+'/resident-probe.json')
+        if(residentProbe=='live'&&!System.getenv('DEEPSEEK_API_KEY')&&!System.getenv('CRAFTDROID_DEEPSEEK_API_KEY'))
+            throw new GradleException('Live probe requires DEEPSEEK_API_KEY or CRAFTDROID_DEEPSEEK_API_KEY in the process environment')
         if(withTestMods) {
             def lock = new groovy.json.JsonSlurper().parse(file('src/gametest/resources/modpack-lock.json'))
             def actual = fileTree(dir:'build/testmods',include:'*.jar').files.collect{it.name}.toSet()
@@ -141,6 +152,8 @@ tasks.register('verifyResidentGameTests') {
         if (!names.any { it.contains('residentlifecycleandpolicy') }) throw new GradleException('Required NeoForge resident scenario did not execute')
         if(!names.any{it.contains('tenresidentswithoutahuman')})throw new GradleException('Native population scenario did not execute')
         if(withTestMods&&!names.any{it.contains('realmachineports')})throw new GradleException('Real-mod scenario did not execute')
+        if(residentProbe&&!names.any{it.contains('residentplanscraftsbuildsandremembers')})throw new GradleException('Behavioral resident probe did not execute')
+        if(residentProbe=='live'&&!names.any{it.contains('residentsconverseandkeepindividualrelationshipnotes')})throw new GradleException('Live social probe did not execute')
         logger.lifecycle("Verified ${cases.length} native NeoForge scenarios")
     }
 }

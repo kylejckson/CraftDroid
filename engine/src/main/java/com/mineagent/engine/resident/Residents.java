@@ -20,6 +20,10 @@ public final class Residents {
     private static final Map<UUID,ResidentProfile> PROFILES=new LinkedHashMap<>();
     private static final Map<UUID,Long> NEXT_DECISION=new HashMap<>(), DEAD_SINCE=new HashMap<>(), NEXT_SPEECH=new HashMap<>();
     private static final ArrayDeque<UUID> RESTORE=new ArrayDeque<>();
+    public record Speech(String text,long tick) {}
+    private static final Map<UUID,Speech> LAST_SPEECH=new HashMap<>();
+    private static final Map<UUID,ArrayDeque<String>> PENDING_SPEECH=new HashMap<>();
+    public static synchronized Speech lastSpeech(UUID id){return LAST_SPEECH.get(id);}
     private static final String[] NAMES={"Rowan","Mira","Ash","Sage","Juniper","Felix","Iris","Cedar","Luna","Theo","Hazel","Orion","Willow","Jasper","Nova","River"};
     private static ResidentSettings settings=ResidentSettings.DEFAULT;
     private static ResidentRepository repository;
@@ -61,7 +65,7 @@ public final class Residents {
         com.mineagent.engine.vision.SceneCapture.reset();
         ResidentPerception.reset();
         com.mineagent.engine.skin.ResidentSkins.reset();
-        PROFILES.clear();ATTENTION.clear();NEXT_DECISION.clear();DEAD_SINCE.clear();NEXT_SPEECH.clear();RESTORE.clear();ticks=0;dirty=false;writable=true;
+        PROFILES.clear();LAST_SPEECH.clear();PENDING_SPEECH.clear();ATTENTION.clear();NEXT_DECISION.clear();DEAD_SINCE.clear();NEXT_SPEECH.clear();RESTORE.clear();ticks=0;dirty=false;writable=true;
         if(data==null)return;
         com.mineagent.engine.protection.AgentProtection.load(data);
         repository=new ResidentRepository(data.resolve("craftdroid/residents.json"));
@@ -91,13 +95,13 @@ public final class Residents {
         PROFILES.put(p.id(),p);dirty=true;
         MineAgentEngine.getCompanion(p.id()).ifPresent(s->{
             MineAgentEngine.renameResident(p.id(),p.name());s.loop.setPersonality(p.persona().toProfile());
-            if(p.paused()){s.auction.cancelTask();s.lifecycle.pauseByOwner();}else if(hasCredentials())s.lifecycle.resumeByOwner();
+            if(p.paused()){PENDING_SPEECH.remove(p.id());s.auction.cancelTask();s.lifecycle.pauseByOwner();}else if(hasCredentials())s.lifecycle.resumeByOwner();
         });
         save();
     }
     public static synchronized void remove(UUID id) {
         com.mineagent.engine.skin.ResidentSkins.forget(id);
-        ResidentPerception.forget(id);
+        ResidentPerception.forget(id);LAST_SPEECH.remove(id);PENDING_SPEECH.remove(id);
         PROFILES.remove(id);RESTORE.remove(id);NEXT_DECISION.remove(id);DEAD_SINCE.remove(id);NEXT_SPEECH.remove(id);
         MineAgentEngine.despawnCompanion(id,false);dirty=true;save();
     }
@@ -114,10 +118,11 @@ public final class Residents {
         }
         return out.substring(0,Math.min(out.length(),6000));
     }
+    public static String apiKey() {
+        return ResidentCredentials.resolve(System.getenv(),MineAgentEngine.getConfig().llm().apiKey());
+    }
     public static boolean hasCredentials() {
-        String e=System.getenv("CRAFTDROID_DEEPSEEK_API_KEY");
-        return(e!=null&&!e.isBlank())||!MineAgentEngine.getConfig().llm().apiKey().isBlank()
-                ||settings.provider().equals("ollama");
+        return !apiKey().isBlank() || settings.provider().equals("ollama");
     }
     public static synchronized void capture(MineAgentEngine.CompanionState s) {
         var old=PROFILES.get(s.companion.companionId());if(old==null)return;
@@ -133,6 +138,13 @@ public final class Residents {
     public static void flush() {com.mineagent.engine.protection.PropertyLedger.flush();save();try{lastSave.get(10,TimeUnit.SECONDS);}catch(Exception e){throw new IllegalStateException("Resident snapshot not flushed",e);}}
     public static synchronized void tick(MinecraftServer server) {
         ticks++;
+        for(var id:List.copyOf(PENDING_SPEECH.keySet())){
+            var state=MineAgentEngine.getCompanion(id).orElse(null);
+            if(state==null||state.lifecycle.isPaused()||state.lifecycle.isDead()){PENDING_SPEECH.remove(id);continue;}
+            var queue=PENDING_SPEECH.get(id);
+            if(!queue.isEmpty()&&ticks>=NEXT_SPEECH.getOrDefault(id,0L))deliverSpeech(state.companion,queue.removeFirst());
+            if(queue.isEmpty())PENDING_SPEECH.remove(id);
+        }
         com.mineagent.engine.vision.SceneCapture.tick();
         ResidentPerception.tick(ticks);
         if(ticks%20==0&&!RESTORE.isEmpty()) {
@@ -178,9 +190,19 @@ public final class Residents {
         ATTENTION.put(p.id(),ticks+200);s.loop.wake(reason);
     }
     public static synchronized void speak(CompanionEntity speaker,String text) {
-        if(ticks<NEXT_SPEECH.getOrDefault(speaker.companionId(),0L))return;
+        UUID id=speaker.companionId();var state=MineAgentEngine.getCompanion(id).orElse(null);
+        if(!PROFILES.containsKey(id)||state==null||state.lifecycle.isPaused()||state.lifecycle.isDead())return;
+        String bounded=ResidentProfile.bounded(text,600);if(bounded.isBlank())return;
+        var last=LAST_SPEECH.get(id);if(last!=null&&last.text().equals(bounded))return;
+        if(ticks<NEXT_SPEECH.getOrDefault(id,0L)){
+            var queue=PENDING_SPEECH.computeIfAbsent(id,k->new ArrayDeque<>());
+            if(!queue.contains(bounded)){if(queue.size()>=2)queue.removeFirst();queue.addLast(bounded);}return;
+        }
+        deliverSpeech(speaker,bounded);
+    }
+    private static void deliverSpeech(CompanionEntity speaker,String bounded){
         NEXT_SPEECH.put(speaker.companionId(),ticks+100);
-        String bounded=ResidentProfile.bounded(text,600);var body=speaker.serverPlayer();
+        LAST_SPEECH.put(speaker.companionId(),new Speech(bounded,ticks));var body=speaker.serverPlayer();
         for(ServerPlayer viewer:body.getServer().getPlayerList().getPlayers()) {
             if(!MineAgentEngine.isCompanionPlayer(viewer.getUUID())&&viewer.level()==body.level()&&viewer.distanceToSqr(body)<=48*48)
                 viewer.sendSystemMessage(Component.literal("["+speaker.companionName()+"] "+bounded));

@@ -1241,6 +1241,7 @@ public class AgentLoop {
     }
 
     public boolean isLocalWorkActive(){return skillRuntime.active();}
+    public SkillRuntime.Snapshot localWorkSnapshot(){return skillRuntime.snapshot();}
 
     public SkillRuntime.StartResult startResidentWork(String goal,String sequence) {
         if (!(companion instanceof CompanionEntity ce) || !ce.isResident())
@@ -4087,17 +4088,16 @@ public class AgentLoop {
     }
 
     /** Shut down the loop executor.
-     *  Calls {@link ExecutorService#shutdown()} to stop accepting new
-     *  tasks, then waits up to 5 seconds for the running turn (if any) to
-     *  finish gracefully. If the running turn does not complete in time,
-     *  forces a shutdown with {@link ExecutorService#shutdownNow()} so the
-     *  JVM can exit. Previously shutdown() returned immediately without
-     *  waiting, which could orphan a running turn mid-LLM-call. */
+     *  Invalidates the current turn and interrupts both HTTP and pending tool waits.
+     *  Cleanup waits at most one second for cancellation, then persists the final memory state. */
     public void shutdown() {
         synchronized (this) {
             suspended = true;
-            eventGeneration.incrementAndGet();
+            cancel();
         }
+        // Shutdown is normally called from the server thread. Interrupt tool waits as well as HTTP;
+        // waiting for queued server callbacks here would otherwise stall that same server for five seconds.
+        executor.shutdownNow();
         realtimeCognition.close();
         long shutdownTick = currentGameTickSafe();
         skillRuntime.cancel("Agent loop shutdown", shutdownTick);
@@ -4115,11 +4115,10 @@ public class AgentLoop {
             }
             persistence.saveAll();
         }
-        executor.shutdown();
         try {
-            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+            if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
                 System.err.println("[CraftDroid] Loop executor did not terminate "
-                        + "gracefully in 5s — forcing shutdown");
+                        + "after cancellation in 1s — forcing shutdown");
                 executor.shutdownNow();
             }
         } catch (InterruptedException e) {

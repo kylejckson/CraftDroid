@@ -164,6 +164,10 @@ public final class SkillRuntime {
         return begin(learned.name(), decoded, gameTick);
     }
 
+    public static Set<String> proposedActionTools() {
+        return Set.of("goto","auto_mine","build","craft","equip_item","eat_item","collect_items","drop_items","transfer_items","transfer_port","interact_at","interact_entity","use_item","wait_for","look_around","inspect_block","inspect_gui","get_self_status");
+    }
+
     /** New plans are unverified until executed; success alone can promote them into learned skills. */
     public synchronized StartResult startProposed(String goal,String sequence,long gameTick) {
         if(active())return new StartResult(false,runId,"A procedure already owns execution");
@@ -171,8 +175,7 @@ public final class SkillRuntime {
             return new StartResult(false,null,"Supply a bounded goal and procedure");
         try {
             var decoded=decode(sequence,null);
-            var allowed=Set.of("goto","auto_mine","build","craft","equip_item","eat_item","collect_items","drop_items","transfer_items","transfer_port","interact_at","interact_entity","use_item","wait_for","look_around","inspect_block","inspect_gui","get_self_status");
-            if(decoded.stream().anyMatch(step->!allowed.contains(step.tool())))
+            if(decoded.stream().anyMatch(step->!proposedActionTools().contains(step.tool())))
                 return new StartResult(false,null,"Procedure contains an unsupported control or action");
             proposedSequence=sequence;proposedGoal=goal;
             return begin("work_"+UUID.randomUUID().toString().substring(0,8),decoded,gameTick);
