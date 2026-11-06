@@ -123,6 +123,7 @@ public final class MineAgentEngine {
         // Save config dir so /mineagent setconfig can persist changes
         configDirPath = configDir;
 
+        com.mineagent.engine.resident.Residents.configure(configDir);
         // Load configuration from disk (or create defaults)
         config = MineAgentConfig.load(configDir);
 
@@ -240,6 +241,7 @@ public final class MineAgentEngine {
      * Called during server startup after world is loaded.
      */
     public static void restoreCompanions(net.minecraft.server.MinecraftServer server) {
+        com.mineagent.engine.resident.Residents.start(server, worldDataDir);
         if (worldDataDir == null) {
             System.out.println("[CraftDroid] No world data directory set, skipping companion restore");
             return;
@@ -260,6 +262,10 @@ public final class MineAgentEngine {
      */
     private static void persistCompanion(CompanionState state) {
         if (worldDataDir == null) return;
+        if (state.companion.isResident()) {
+            com.mineagent.engine.resident.Residents.capture(state);
+            return;
+        }
 
         var sp = state.companion.serverPlayer();
         var owner = state.companion.serverPlayerOwner();
@@ -310,7 +316,7 @@ public final class MineAgentEngine {
     }
 
     /** Serialize vanilla-owned body state without persisting entity identity. */
-    private static String serializeCompanionBody(CompanionState state) {
+    public static String serializeCompanionBody(CompanionState state) {
         var sp = state.companion.serverPlayer();
         var body = new net.minecraft.nbt.CompoundTag();
         body.put("Inventory", sp.getInventory().save(new net.minecraft.nbt.ListTag()));
@@ -337,7 +343,7 @@ public final class MineAgentEngine {
     }
 
     /** Restore the body snapshot after the fake player has been registered. */
-    private static boolean restoreCompanionBody(CompanionEntity companion, String bodyData) {
+    public static boolean restoreCompanionBody(CompanionEntity companion, String bodyData) {
         if (bodyData == null || bodyData.isBlank()) return false; // version-1 save
         var sp = companion.serverPlayer();
         try {
@@ -447,6 +453,7 @@ public final class MineAgentEngine {
             COMPANION_PLAYER_UUIDS.remove(state.companion.serverPlayer().getUUID());
         }
         COMPANIONS.clear();
+        com.mineagent.engine.resident.Residents.flush();
         OWNER_TO_COMPANION.clear();
         OWNER_TO_ALL_COMPANIONS.clear();
         COMPANION_MODES.clear();
@@ -750,6 +757,68 @@ public final class MineAgentEngine {
                     + initializationError);
             return null;
         }
+    }
+
+    /** Spawn an owner-independent body with a persisted, rename-stable identity. */
+    public static CompanionEntity spawnResident(com.mineagent.engine.resident.ResidentProfile profile,
+                                                net.minecraft.server.level.ServerLevel level,
+                                                net.minecraft.core.BlockPos position) {
+        if (!com.mineagent.engine.protection.AgentProtection.allows(level,position,com.mineagent.engine.protection.RegionRules.Action.ENTER))
+            throw new IllegalArgumentException("Spawn position is inside a no-entry region");
+        UUID id = profile.id();
+        if (COMPANIONS.containsKey(id)) throw new IllegalArgumentException("Resident already active");
+        String loginName = "CD_" + id.toString().replace("-", "").substring(0, 13);
+        GameProfile gameProfile = new GameProfile(id, loginName);
+        COMPANION_PLAYER_UUIDS.add(id);
+        ServerPlayer body = null;
+        AgentLoop loop = null;
+        try {
+            body = FakePlayerFactory.create(level.getServer(), gameProfile, level, position,
+                    net.minecraft.world.level.GameType.SURVIVAL);
+            CompanionEntity citizen = new CompanionEntity(body, null, profile.name(),
+                    CompanionGameMode.SURVIVAL, id, true);
+            body.setCustomName(Component.literal(profile.name()));
+            body.setCustomNameVisible(true);
+            setTabListDisplay(body, profile.name());
+            var settings = com.mineagent.engine.resident.Residents.settings();
+            String key = config.llm().apiKey();
+            String environmentKey = System.getenv("CRAFTDROID_DEEPSEEK_API_KEY");
+            if (environmentKey != null && !environmentKey.isBlank()) key = environmentKey;
+            loop = new AgentLoop(citizen, settings.provider(), key, settings.model(),
+                    settings.baseUrl(), .7, settings.maxOutputTokens(), "off");
+            loop.setPersonality(profile.persona().toProfile());
+            List<TaskChain> chains = new ArrayList<>();
+            for (BrainChains.Entry entry : BrainChains.entries()) chains.add(entry.factory().apply(citizen));
+            var auction = new PriorityAuction(citizen, chains, loop);
+            var lifecycle = new CompanionLifecycleHandler(citizen, loop, chains);
+            var state = new CompanionState(citizen, loop, auction, lifecycle);
+            COMPANIONS.put(id, state);
+            OWNER_TO_ALL_COMPANIONS.computeIfAbsent(CompanionEntity.RESIDENT_COMMUNITY,
+                    k -> Collections.synchronizedList(new ArrayList<>())).add(id);
+            OWNER_TO_COMPANION.putIfAbsent(CompanionEntity.RESIDENT_COMMUNITY,id);
+            COMPANION_MODES.put(id, CompanionMode.FREE);
+            restoreCompanionBody(citizen, profile.body());
+            if (profile.paused() || key == null || key.isBlank()) loop.pause();
+            lifecycle.onSpawn(citizen);
+            FakePlayerFactory.refreshPlayerInfo(body);
+            return citizen;
+        } catch (RuntimeException error) {
+            if (loop != null) loop.shutdown();
+            COMPANIONS.remove(id);
+            COMPANION_PLAYER_UUIDS.remove(id);
+            COMPANION_MODES.remove(id);
+            if (body != null) FakePlayerFactory.unregister(level.getServer(), body);
+            throw error;
+        }
+    }
+
+    public static void renameResident(UUID id, String name) {
+        CompanionState state = COMPANIONS.get(id);
+        if (state == null || !state.companion.isResident()) return;
+        state.companion.rename(name);
+        state.companion.serverPlayer().setCustomName(Component.literal(name));
+        setTabListDisplay(state.companion.serverPlayer(), name);
+        FakePlayerFactory.refreshPlayerInfo(state.companion.serverPlayer());
     }
 
     /**
@@ -1106,6 +1175,9 @@ public final class MineAgentEngine {
      * pending tasks. Also handles companion death revival and night skipping.
      */
     public static void onServerTick(net.minecraft.server.MinecraftServer server) {
+        for (var state : List.copyOf(COMPANIONS.values()))
+            com.mineagent.engine.protection.AgentProtection.enforcePosition(state.companion.serverPlayer());
+        com.mineagent.engine.resident.Residents.tick(server);
         // Drain pending tasks
         for (var pending : CompanionTickDispatcher.drain()) {
             var state = COMPANIONS.get(pending.player().companionId());
@@ -1238,6 +1310,7 @@ public final class MineAgentEngine {
                 // same body in place. Paused-but-alive bodies still need normal
                 // physics, hunger and damage ticks.
                 if (!state.lifecycle.isDead()) sp.connection.tick();
+                com.mineagent.engine.protection.AgentProtection.enforcePosition(sp);
             } catch (Throwable t) {
                 // A single companion's connection tick failure must NOT crash
                 // the entire server tick loop — log and continue.
@@ -1560,6 +1633,7 @@ public final class MineAgentEngine {
      * @param message the chat message content
      */
     public static void onPlayerChat(ServerPlayer sender, String message) {
+        com.mineagent.engine.resident.Residents.hear(sender, message);
         List<CompanionState> all = getCompanionsByOwner(sender.getUUID());
         if (all.isEmpty()) return;
 
@@ -1789,6 +1863,8 @@ public final class MineAgentEngine {
      * @param dispatcher the Brigadier command dispatcher
      */
     public static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher) {
+        com.mineagent.engine.resident.ResidentCommands.register(dispatcher);
+        com.mineagent.engine.protection.RegionCommands.register(dispatcher);
         dispatcher.register(
             literal("mineagent")
                 // No permission requirement — works in single-player without OP

@@ -63,6 +63,8 @@ public final class SafeTeleport {
             return false;
         }
 
+        if (!com.mineagent.engine.protection.AgentProtection.allows(level,feet,com.mineagent.engine.protection.RegionRules.Action.ENTER)
+                || !com.mineagent.engine.protection.AgentProtection.allows(level,feet.above(),com.mineagent.engine.protection.RegionRules.Action.ENTER)) return false;
         var feetState = level.getBlockState(feet);
         var headState = level.getBlockState(feet.above());
         var supportState = level.getBlockState(feet.below());

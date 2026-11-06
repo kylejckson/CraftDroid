@@ -33,6 +33,10 @@ public class MineAgentFabric implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity,source,amount) ->
+                !(entity instanceof net.minecraft.world.entity.player.Player
+                  && source.getEntity() instanceof net.minecraft.server.level.ServerPlayer attacker
+                  && MineAgentEngine.isCompanionPlayer(attacker.getUUID())));
         // 1. Server lifecycle hooks
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             platform = new FabricPlatform(server);

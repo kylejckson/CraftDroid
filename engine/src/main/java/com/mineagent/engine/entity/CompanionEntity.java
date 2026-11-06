@@ -22,6 +22,9 @@ public class CompanionEntity extends AgentPlayer {
     private final UUID companionId;
     private volatile String companionName;
     private final ServerPlayer owner;
+    private final boolean resident;
+    public static final UUID RESIDENT_COMMUNITY = UUID.nameUUIDFromBytes(
+            "CraftDroid:resident-community".getBytes(java.nio.charset.StandardCharsets.UTF_8));
     private final CompanionInputDriver inputDriver;
     /** Human-owned mode; no AI/tool path is allowed to mutate this field. */
     private volatile CompanionGameMode gameMode;
@@ -38,8 +41,14 @@ public class CompanionEntity extends AgentPlayer {
 
     public CompanionEntity(ServerPlayer serverPlayer, ServerPlayer owner, String name,
                            CompanionGameMode gameMode) {
+        this(serverPlayer, owner, name, gameMode, UUID.randomUUID(), false);
+    }
+
+    public CompanionEntity(ServerPlayer serverPlayer, ServerPlayer owner, String name,
+                           CompanionGameMode gameMode, UUID stableId, boolean resident) {
         this.serverPlayer = serverPlayer;
-        this.companionId = UUID.randomUUID();
+        this.resident = resident;
+        this.companionId = stableId;
         this.companionName = name;
         this.owner = owner;
         this.inputDriver = new CompanionInputDriver(serverPlayer);
@@ -63,6 +72,8 @@ public class CompanionEntity extends AgentPlayer {
     }
 
     /** The owner as a ServerPlayer. Engine/tools only. */
+    public boolean isResident() { return resident; }
+
     public ServerPlayer serverPlayerOwner() {
         return owner;
     }
@@ -114,12 +125,12 @@ public class CompanionEntity extends AgentPlayer {
 
     @Override
     public UUID ownerUuid() {
-        return owner.getUUID();
+        return resident ? RESIDENT_COMMUNITY : owner.getUUID();
     }
 
     @Override
     public String ownerName() {
-        return owner.getName().getString();
+        return resident ? "the community" : owner.getName().getString();
     }
 
     @Override

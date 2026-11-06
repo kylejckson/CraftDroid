@@ -216,7 +216,9 @@ public class CompanionLifecycleHandler implements CompanionLifecycle {
 
         // Resume the agent loop — inform the LLM of the respawn
         loop.onBodyLog("I've been respawned! I'm at full health and ready to continue.");
-        loop.resume("companion_respawned");
+        if (this.companion instanceof CompanionEntity ce && ce.isResident()
+                && !com.mineagent.engine.resident.Residents.hasCredentials()) loop.pause();
+        else loop.resume("companion_respawned");
 
         // Notify the owner
         notifyOwner("§a[CraftDroid] " + companion.companionName() + " has respawned!");

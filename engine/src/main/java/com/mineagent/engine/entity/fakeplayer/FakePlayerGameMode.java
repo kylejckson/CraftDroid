@@ -67,6 +67,26 @@ public class FakePlayerGameMode extends ServerPlayerGameMode {
         super(player);
     }
 
+    @Override
+    public net.minecraft.world.InteractionResult useItemOn(ServerPlayer actor, net.minecraft.world.level.Level world,
+            net.minecraft.world.item.ItemStack stack, net.minecraft.world.InteractionHand hand,
+            net.minecraft.world.phys.BlockHitResult hit) {
+        if (!com.mineagent.engine.protection.AgentProtection.mayUse(actor,hit.getBlockPos()))
+            return net.minecraft.world.InteractionResult.FAIL;
+        if (stack.getItem() instanceof net.minecraft.world.item.BlockItem
+                && !com.mineagent.engine.protection.AgentProtection.allows(world,hit.getBlockPos().relative(hit.getDirection()),com.mineagent.engine.protection.RegionRules.Action.PLACE))
+            return net.minecraft.world.InteractionResult.FAIL;
+        return super.useItemOn(actor,world,stack,hand,hit);
+    }
+
+    @Override
+    public net.minecraft.world.InteractionResult useItem(ServerPlayer actor, net.minecraft.world.level.Level world,
+            net.minecraft.world.item.ItemStack stack, net.minecraft.world.InteractionHand hand) {
+        if (!com.mineagent.engine.protection.AgentProtection.mayUse(actor,actor.blockPosition()))
+            return net.minecraft.world.InteractionResult.FAIL;
+        return super.useItem(actor,world,stack,hand);
+    }
+
     /**
      * Enable or disable creative-mode reach distance.
      */
@@ -174,6 +194,7 @@ public class FakePlayerGameMode extends ServerPlayerGameMode {
      */
     @Override
     public boolean destroyBlock(BlockPos pos) {
+        if (!com.mineagent.engine.protection.AgentProtection.mayBreak(player,pos)) return false;
         return super.destroyBlock(pos);
     }
 
@@ -188,6 +209,9 @@ public class FakePlayerGameMode extends ServerPlayerGameMode {
                                         Direction direction,
                                         int maxUpAngle, int sequence) {
         if (pos == null || action == null) return;
+        if (!com.mineagent.engine.protection.AgentProtection.mayBreak(player,pos)) {
+            abortAutomaticDestroy(); return;
+        }
 
         if (action == ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK) {
             if (automaticDestroyPos != null && !automaticDestroyPos.equals(pos)) {

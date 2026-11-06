@@ -30,6 +30,8 @@ public class LoadedOnlyView {
      * @return the block state, or null if the chunk is not loaded
      */
     public BlockState getBlockState(BlockPos pos) {
+        if (!com.mineagent.engine.protection.AgentProtection.allows(level,pos,com.mineagent.engine.protection.RegionRules.Action.ENTER))
+            return net.minecraft.world.level.block.Blocks.BEDROCK.defaultBlockState();
         int chunkX = pos.getX() >> 4;
         int chunkZ = pos.getZ() >> 4;
         ChunkAccess chunk = level.getChunkSource().getChunkNow(chunkX, chunkZ);

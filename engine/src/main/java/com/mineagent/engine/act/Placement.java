@@ -67,6 +67,7 @@ public final class Placement {
     public static boolean placeBlock(ServerPlayer player, BlockPos pos, BlockState state) {
         try {
             if (player == null || pos == null || state == null) return false;
+            if (!com.mineagent.engine.protection.AgentProtection.allows(player.level(),pos,com.mineagent.engine.protection.RegionRules.Action.PLACE)) return false;
 
             ServerLevel level = player.serverLevel();
 
@@ -192,6 +193,7 @@ public final class Placement {
         if (!isWithinReach(player, target)) {
             return Attempt.failure("target is outside interaction reach");
         }
+        if (!com.mineagent.engine.protection.AgentProtection.allows(level,target,com.mineagent.engine.protection.RegionRules.Action.PLACE)) return Attempt.failure("OP region denies placement");
         if (!level.mayInteract(player, target)
                 || player.blockActionRestricted(
                         level, target, player.gameMode.getGameModeForPlayer())) {

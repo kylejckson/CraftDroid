@@ -75,6 +75,11 @@ public class MineAgentNeoForge {
             if (event.getPlayer() == null) MineAgentEngine.onRulesReloaded(event.getPlayerList().getServer());
         });
         NeoForge.EVENT_BUS.addListener(this::onLivingDeath);
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent event) -> {
+            if (event.getEntity() instanceof net.minecraft.world.entity.player.Player
+                    && event.getSource().getEntity() instanceof ServerPlayer attacker
+                    && MineAgentEngine.isCompanionPlayer(attacker.getUUID())) event.setCanceled(true);
+        });
     }
 
     /**

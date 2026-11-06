@@ -62,6 +62,7 @@ public class CompanionInputDriver implements InputDriver {
         if (hit.getType() == HitResult.Type.ENTITY) {
             // Attack entity
             var entityHit = (EntityHitResult) hit;
+            if (!com.mineagent.engine.protection.AgentProtection.mayAttack(player,entityHit.getEntity())) return;
             player.attack(entityHit.getEntity());
         } else if (hit.getType() == HitResult.Type.BLOCK) {
             // Keep START held across ticks. FakePlayerGameMode supplies the

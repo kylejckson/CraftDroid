@@ -56,6 +56,44 @@ public final class LearningGameTests implements ModInitializer, FabricGameTest {
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("mineagent_gametest", "unfamiliar_token"), TOKEN);
     }
 
+    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 120)
+    public void residentIdentityInventoryAndProtectionSurviveRenameAndRestore(GameTestHelper helper) {
+        for(int x=0;x<5;x++)for(int z=0;z<5;z++) {
+            helper.setBlock(new BlockPos(x,1,z),net.minecraft.world.level.block.Blocks.STONE);
+            helper.setBlock(new BlockPos(x,2,z),net.minecraft.world.level.block.Blocks.AIR);
+            helper.setBlock(new BlockPos(x,3,z),net.minecraft.world.level.block.Blocks.AIR);
+        }
+        var level=helper.getLevel();var pos=helper.absolutePos(new BlockPos(2,2,2));
+        var profile=com.mineagent.engine.resident.Residents.create(level.getServer(),level,pos,"NativeResident",true);
+        try {
+            var state=com.mineagent.engine.MineAgentEngine.getCompanion(profile.id()).orElseThrow();
+            require(state.companion.serverPlayerOwner()==null,"Resident must not require an online owner");
+            require(state.companion.serverPlayer().getUUID().equals(profile.id()),"Body identity must match durable identity");
+            state.companion.serverPlayer().getInventory().setItem(0,new net.minecraft.world.item.ItemStack(Items.OAK_LOG,3));
+            com.mineagent.engine.resident.Residents.update(profile.edit("RenamedResident",null,true,null,null));
+            com.mineagent.engine.resident.Residents.capture(state);
+            var snapshot=com.mineagent.engine.resident.Residents.profile(profile.id());
+            com.mineagent.engine.MineAgentEngine.despawnCompanion(profile.id(),false);
+            var restored=com.mineagent.engine.MineAgentEngine.spawnResident(snapshot,level,pos);
+            require(restored.companionId().equals(profile.id()),"Rename/restart must retain identity");
+            require(restored.serverPlayer().getInventory().getItem(0).getCount()==3,"Real inventory must restore");
+            var target=restored.serverPlayer().blockPosition().below();
+            String dimension=level.dimension().location().toString();
+            com.mineagent.engine.protection.AgentProtection.RULES.put(new com.mineagent.engine.protection.RegionRules.Region(
+                    "native_test",dimension,target.getX(),target.getY(),target.getZ(),target.getX(),target.getY(),target.getZ(),
+                    java.util.Set.of(com.mineagent.engine.protection.RegionRules.Action.BREAK)));
+            require(!restored.serverPlayer().gameMode.destroyBlock(target),"Final mining path must enforce regions");
+            require(!level.getBlockState(target).isAir(),"Protected block must remain intact");
+            var human=helper.makeMockServerPlayerInLevel();human.setPos(restored.posX()+1,restored.posY(),restored.posZ());
+            require(!com.mineagent.engine.act.Interaction.attackEntity(restored.serverPlayer(),human),"Player combat must be forbidden");
+            require(!com.mineagent.engine.MineAgentEngine.getCompanion(profile.id()).orElseThrow().loop.isThinking(),"Paused test resident must not call a provider");
+            helper.succeed();
+        } finally {
+            com.mineagent.engine.protection.AgentProtection.RULES.remove("native_test");
+            com.mineagent.engine.resident.Residents.remove(profile.id());
+        }
+    }
+
     @GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 60)
     public void observesPublicActorAndRejectsWrongUuid(GameTestHelper helper) {
         var npc=helper.spawn(net.minecraft.world.entity.EntityType.VILLAGER,new BlockPos(1,1,1));

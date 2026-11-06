@@ -45,6 +45,7 @@ public final class ToolRegistration {
     public static void registerAll() {
         ToolRegistry.register(new com.mineagent.tools.inventory.TransferPortTool());
         // Movement
+        ToolRegistry.register(new com.mineagent.tools.management.ResidentMemoryTool());
         ToolRegistry.register(new MoveToTool());
 
         // Perception

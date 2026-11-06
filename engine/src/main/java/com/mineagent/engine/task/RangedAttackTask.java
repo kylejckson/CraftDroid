@@ -72,6 +72,9 @@ public class RangedAttackTask
             return;
         }
 
+        if (!com.mineagent.engine.protection.AgentProtection.mayAttack(sp,target)) {
+            fail("Player combat or protected interaction is forbidden"); return;
+        }
         weaponKind = weaponKind(sp.getMainHandItem());
         if (weaponKind == WeaponKind.INVALID) {
             fail("Main hand does not contain a supported ranged weapon");

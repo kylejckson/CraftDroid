@@ -46,7 +46,7 @@ public final class TransferPortTool implements Tool {
         String lease=com.mineagent.engine.cognition.TeamWorkBoard.resourceBlocker(player.ownerUuid(),player.companionId(),
                 "block:"+dimension+":"+x+","+y+","+z,level.getGameTime());
         if(lease!=null) { reply.accept(ToolArgs.errorJson(lease)); return; }
-        if(!level.isInWorldBounds(pos)||!level.isLoaded(pos)||!sp.isAlive()||sp.isRemoved()||sp.isSpectator()||!level.mayInteract(sp,pos)
+        if(!com.mineagent.engine.protection.AgentProtection.mayUse(sp,pos)||!level.isInWorldBounds(pos)||!level.isLoaded(pos)||!sp.isAlive()||sp.isRemoved()||sp.isSpectator()||!level.mayInteract(sp,pos)
                 || sp.getServer().isUnderSpawnProtection(level,pos,sp)) {
             reply.accept(ToolArgs.errorJson("Public port is unloaded or interaction is not permitted")); return;
         }

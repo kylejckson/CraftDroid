@@ -259,6 +259,7 @@ public final class Interaction {
             // knockback, durability and statistics behavior.
             player.lookAt(EntityAnchorArgument.Anchor.EYES, target,
                     EntityAnchorArgument.Anchor.EYES);
+            if (!com.mineagent.engine.protection.AgentProtection.mayAttack(player,target)) return false;
             player.attack(target);
             player.swing(InteractionHand.MAIN_HAND);
             return true;
