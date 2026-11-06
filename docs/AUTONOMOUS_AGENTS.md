@@ -21,7 +21,7 @@ On a 4GB server, begin with one or two agents sharing a pregenerated area. Ten i
 
 ## Validation status
 
-The component suite (298 tests) and dual-loader release checks pass. See the [dated validation evidence](RESIDENT_VALIDATION.md). Native Fabric scenarios and a real NeoForge dedicated-server scenario exercise resident identity, inventory restoration, protection, no-PvP, and server-only PNG capture. Short live DeepSeek crafting/building, spoken image feedback, two-resident dialogue and durable relationship notes now pass; see the [live validation record](research/live-residents-2026-11-06.md). A three-resident supplied town has completed a full Minecraft day with the selected mods; the [town-life journal](research/town-life-2026-11-06.md) records its substantial remaining gameplay and fixture limits.
+The component suite (299 tests) and dual-loader release checks pass. See the [dated validation evidence](RESIDENT_VALIDATION.md). Native Fabric scenarios and a real NeoForge dedicated-server scenario exercise resident identity, inventory restoration, protection, no-PvP, and server-only PNG capture. Short live DeepSeek crafting/building, spoken image feedback, two-resident dialogue and durable relationship notes now pass; see the [live validation record](research/live-residents-2026-11-06.md). A three-resident supplied town has completed a full Minecraft day with the selected mods; the [town-life journal](research/town-life-2026-11-06.md) records its substantial remaining gameplay and fixture limits.
 
 ## Resident controls (implemented)
 
@@ -33,7 +33,7 @@ Resident snapshots are under `<world>/data/craftdroid/residents.json`; memory us
 
 ## Hard regions (implemented)
 
-`/craftdroid zone pos1/pos2 [x y z]`, then `zone save <name> <enter,break,place,use>`; `zone list` and `zone remove <name>`. Coordinates are inclusive and dimension-specific; overlapping denials combine. Rules persist under `<world>/data/craftdroid/regions.json`. Corrupt rules fail closed. Path calculation, live movement, final mining/placement and item interactions are checked. Player combat is blocked at direct attacks and loader damage events, including attributed projectile damage.
+`/craftdroid zone pos1/pos2 [x y z]`, then `zone save <name> <enter,break,place,use>`; `zone list` and `zone remove <name>`. Coordinates are inclusive and dimension-specific; overlapping denials combine. Rules persist under `<world>/data/craftdroid/regions.json`. The model receives the inclusive bounds and denied actions of at most eight nearby regions in current context; all regions remain executor-enforced. Corrupt rules fail closed. Path calculation, live movement, final mining/placement and item interactions are checked. Player combat is blocked at direct attacks and loader damage events, including attributed projectile damage.
 
 Protection is an active development area: pre-existing property needs explicit OP regions. Residents conservatively refuse to mine unknown crafted blocks or containers. Arbitrary modded explosions, autonomous machinery and delayed indirect effects are not yet comprehensively attributed.
 
@@ -74,4 +74,4 @@ CI preserves the native XML and server logs. Each run uses a fresh disposable wo
 
 ## Town-life experiments
 
-See the [town-life test journal and actual server snapshots](research/town-life-2026-11-06.md) for a budget-limited discovery run, a successful five-minute continuation, a full 24,000-tick phase, the fixes found through testing, and the explicit paid commands for starting or resuming an isolated town. These experiments preserve paused residents, inventories, notes and world construction between server processes.
+See the [town-life test journal and actual server snapshots](research/town-life-2026-11-06.md) for a budget-limited discovery run, a successful five-minute continuation, a full 24,000-tick phase, a further ten minutes with crop growth, the fixes found through testing, and the explicit paid commands for starting or resuming an isolated town. These experiments preserve paused residents, inventories, notes and world construction between server processes.

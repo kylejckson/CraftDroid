@@ -58,6 +58,7 @@ final class ResidentProbeProvider implements LLMProvider {
                         imageDescription=JsonParser.parseString(call.arguments()).getAsJsonObject().get("text").getAsString().trim();
             }
             var row=new LinkedHashMap<String,Object>();row.put("attempt",attempt);row.put("paid",live);row.put("elapsed_ms",(System.nanoTime()-start)/1000000);row.put("image",hasImage);
+            row.put("region_context",request.messages().stream().anyMatch(m->m.content()!=null&&m.content().contains("Nearby mandatory OP regions in ")));
             row.put("finish_reason",Objects.toString(response.finishReason(),""));
             row.put("recent_tool_results",request.messages().stream().filter(m->"tool".equals(m.role())).skip(Math.max(0,request.messages().stream().filter(m->"tool".equals(m.role())).count()-4)).map(m->Objects.toString(m.content(),"")).toList());
             if(response.usage()!=null){row.put("input_tokens",response.usage().promptTokens());row.put("output_tokens",response.usage().completionTokens());row.put("cached_input_tokens",response.usage().cachedPromptTokens());}

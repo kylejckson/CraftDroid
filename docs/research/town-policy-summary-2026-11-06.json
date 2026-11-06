@@ -1,0 +1,20 @@
+{
+  "scenario_status": "passed",
+  "elapsed_s": 90.094907064,
+  "world_ticks": 1794,
+  "starting_game_time": 41708,
+  "ending_game_time": 43502,
+  "starting_day_time": 41748,
+  "ending_day_time": 43542,
+  "agents": 3,
+  "attempt_limit": 50,
+  "attempts": 24,
+  "failure": "",
+  "completed_requests_with_current_regions": 8,
+  "all_profiles_paused": false,
+  "final_health": {
+    "Mira": 20.0,
+    "Luna": 20.0,
+    "Nova": 20.0
+  }
+}

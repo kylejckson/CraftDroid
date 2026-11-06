@@ -4,7 +4,7 @@ Validated in the cloud workspace on 2026-11-06 using Java 21.0.13, Gradle 8.14.3
 
 ## Passed gates
 
-- `./gradlew verifyReleaseArtifacts`: 298 component tests with zero failures/errors, six native Fabric scenarios, four required native NeoForge scenarios, both production JARs, and packaged-class/license checks.
+- `./gradlew verifyReleaseArtifacts`: 299 component tests with zero failures/errors, six native Fabric scenarios, four required native NeoForge scenarios, both production JARs, and packaged-class/license checks.
 - `python scripts/provision-neoforge-tests.py` followed by the explicitly paid `./gradlew -President_probe=live -Pneoforge_modpack=true :neoforge:verifyResidentGameTests`: seven required native NeoForge scenarios including the live gameplay/social probes with SHA-512-pinned Mekanism 10.7.19.85, AE2 19.2.18 and GuideME 21.1.22.
 - The resident native scenario exercises ownerless creation, stable identity/public name through rename and body restoration, inventory retention, actual human block placement/provenance, protected break denial, sharing, no player damage, offhand hazard rejection, cancellation of local work on pause, upper-cell protection for doors, movement rollback, and server-only 192×108 scene capture.
 - The real-machine scenario places machines through actual item interactions, inserts a carried raw iron into Mekanism, supplies public FE energy, waits for actual smelting, extracts the resulting ingot, and transfers an AE2 crystal through a charger's public item port. Energy and test supplies are fixture inputs; this is not an autonomous resource-production demonstration.
@@ -17,8 +17,8 @@ The final combined-mod smoke run created ten persistent ownerless **paused** res
 ## Artifact SHA-256
 
 ```text
-06ef57492dc4c249649a86552fc14f44891ad52cbead65f81ca5054cf28360a9  craftdroid-fabric-1.0.0.jar
-4fdb3efe588e60937cfbdb3e4dd129c3c0e3b43fc9191f7b49e6eb02296063a1  craftdroid-neoforge-1.0.0.jar
+a5c9fbf548e212a146d024d4979912415c495e8cb90317720d3bab2fe88acc11  craftdroid-fabric-1.0.0.jar
+9a973fa59dfa193f6f06b71a7d3536cc329718cbd8f99a31374cd08acd468432  craftdroid-neoforge-1.0.0.jar
 ```
 
 Generated native XML and server logs are preserved by CI. A report must include the named required scenarios and contain no failures, errors or skipped cases; a server that starts without executing tests cannot pass. Ordinary NeoForge regression runs start with a fresh disposable world under `build/`; explicitly resumed town runs retain their isolated checkpoint. Native scenarios require no EULA interaction because NeoForge's development GameTest path automatically accepts the test-server EULA.

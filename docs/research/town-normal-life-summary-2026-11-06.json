@@ -1,0 +1,140 @@
+{
+  "scenario_status": "passed",
+  "elapsed_s": 600.084275443,
+  "world_ticks": 11651,
+  "starting_game_time": 30016,
+  "ending_game_time": 41667,
+  "starting_day_time": 30056,
+  "ending_day_time": 41707,
+  "agents": 3,
+  "resumed": true,
+  "attempt_limit": 240,
+  "attempts": 89,
+  "failure": "",
+  "origin": [
+    -13925087,
+    -58,
+    3818355
+  ],
+  "starting_block_census": {
+    "minecraft:chest": 1,
+    "minecraft:cobblestone": 72,
+    "minecraft:crafting_table": 2,
+    "minecraft:dirt_path": 1,
+    "minecraft:farmland": 3,
+    "minecraft:furnace": 2,
+    "minecraft:grass_block": 999,
+    "minecraft:oak_door": 2,
+    "minecraft:oak_leaves": 346,
+    "minecraft:oak_log": 19,
+    "minecraft:oak_planks": 86,
+    "minecraft:oak_sign": 1,
+    "minecraft:water": 16,
+    "minecraft:wheat": 3,
+    "minecraft:wheat[age=0]": 3,
+    "minecraft:white_bed": 2
+  },
+  "block_census": {
+    "minecraft:chest": 1,
+    "minecraft:cobblestone": 67,
+    "minecraft:crafting_table": 2,
+    "minecraft:dirt": 96,
+    "minecraft:dirt_path": 1,
+    "minecraft:farmland": 14,
+    "minecraft:furnace": 1,
+    "minecraft:grass_block": 888,
+    "minecraft:oak_door": 2,
+    "minecraft:oak_leaves": 340,
+    "minecraft:oak_log": 21,
+    "minecraft:oak_planks": 118,
+    "minecraft:oak_sign": 1,
+    "minecraft:water": 16,
+    "minecraft:wheat": 14,
+    "minecraft:wheat[age=0]": 12,
+    "minecraft:wheat[age=1]": 1,
+    "minecraft:wheat[age=2]": 1,
+    "minecraft:white_bed": 2
+  },
+  "final_frame": {
+    "changed_block_ids": 202,
+    "new_nonair_cells": 62,
+    "elapsed_s": 600,
+    "removed_cells": 33
+  },
+  "chat": [
+    {
+      "name": "Nova",
+      "text": "Garden's planted \u2014 four wheat plots by the furnace. Next I want to expand it a bit and finish the shelter walls. Anyone need spare cobblestone?",
+      "elapsed_s": 400
+    },
+    {
+      "name": "Luna",
+      "text": "Nova, I've got a few wheat plots going too \u2014 one of my cells is bone dry, no water nearby. Did you dig a channel to your plots? I could use the trick.",
+      "elapsed_s": 405
+    },
+    {
+      "name": "Nova",
+      "text": "Luna, mine are bone dry too, honestly \u2014 farmland keeps its moisture for a while even without water, so they'll still grow, just slower. If you want the trick: dig a one-block trench alongside the row and fill it with a water bucket, then every plot within 4 blocks stays wet. I haven't got a bucket yet, so I'm just keeping the plots planted for now.",
+      "elapsed_s": 405
+    },
+    {
+      "name": "Luna",
+      "text": "Good tip, thanks Nova. I've got a bucket's worth of water right in the pond below my plots \u2014 I'll try digging a trench to it. Slower growth is fine for now anyway.",
+      "elapsed_s": 410
+    },
+    {
+      "name": "Luna",
+      "text": "Ha \u2014 my garden's already planted! The wheat is up and growing; I was trying to plant seeds on top of wheat. Now I just need water reaching the plots so it grows faster.",
+      "elapsed_s": 560
+    },
+    {
+      "name": "Mira",
+      "text": "Nice, Luna! I've got a wheat farm going too \u2014 I'll bring a water bucket over if you need one.",
+      "elapsed_s": 565
+    },
+    {
+      "name": "Luna",
+      "text": "Mira, that'd be perfect \u2014 yes please, a water bucket! My plots are dry and the pond's just west of me at about (-13925076, -60, 3818374). I'm by the chest at (-13925072, -58, 3818371).",
+      "elapsed_s": 570
+    },
+    {
+      "name": "Luna",
+      "text": "Enjoy, Nova \u2014 one bucket shared around is a fine way to start a neighborhood. While we wait, I'll dig a little channel from the pond's edge toward my rows so the water spreads on its own.",
+      "elapsed_s": 580
+    },
+    {
+      "name": "Nova",
+      "text": "Mira, if you're carrying a bucket anyway, I'd love a splash on my plots too \u2014 the tilled row just east of Luna's, around -13925064, -59, 3818360. I'll trade you what I can.",
+      "elapsed_s": 580
+    }
+  ],
+  "observed_hostile_max": 0,
+  "mob_spawning": true,
+  "random_tick_speed": [
+    3
+  ],
+  "heap_used_mib_range": [
+    273,
+    780
+  ],
+  "residents": [
+    {
+      "name": "Mira",
+      "memory_count": 6,
+      "min_health": 20.0,
+      "observed_dead_samples": 0
+    },
+    {
+      "name": "Luna",
+      "memory_count": 5,
+      "min_health": 20.0,
+      "observed_dead_samples": 0
+    },
+    {
+      "name": "Nova",
+      "memory_count": 6,
+      "min_health": 20.0,
+      "observed_dead_samples": 0
+    }
+  ]
+}

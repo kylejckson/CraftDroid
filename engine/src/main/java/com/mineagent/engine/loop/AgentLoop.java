@@ -3927,6 +3927,9 @@ public class AgentLoop {
         sb.append(cognitiveState.summarizeForPrompt(12));
 
         sb.append(com.mineagent.engine.resident.Residents.context(companion.companionId()));
+        var policyPosition=liveAssetPosition.get();
+        if(policyPosition!=null)sb.append(com.mineagent.engine.protection.AgentProtection.RULES.describeNearby(
+                policyPosition.dimension(),policyPosition.x(),policyPosition.y(),policyPosition.z(),32,8));
 
         // ── Companion mode (DYNAMIC: toggled by /mineagent mode) ──
         var mode = MineAgentEngine.getCompanionMode(companion.companionId());
