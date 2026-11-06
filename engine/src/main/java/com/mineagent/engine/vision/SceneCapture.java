@@ -13,7 +13,7 @@ public final class SceneCapture {
     private static final Map<UUID,Long> LAST=new HashMap<>();
     private static final ThreadPoolExecutor RENDER=new ThreadPoolExecutor(1,1,0,TimeUnit.MILLISECONDS,
             new ArrayBlockingQueue<>(2),r->{var t=new Thread(r,"CraftDroid-software-vision");t.setDaemon(true);return t;},new ThreadPoolExecutor.AbortPolicy());
-    private static long generation;
+    private static volatile long generation;
     private static final class Job {
         final ServerPlayer actor;final long tick,epoch;final int size=24,minX,minY,minZ;final int[] colors=new int[size*size*size];
         final double eyeX,eyeY,eyeZ;final float yaw,pitch;final boolean rain;final int sky;int cursor;

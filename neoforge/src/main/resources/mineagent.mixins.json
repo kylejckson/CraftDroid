@@ -4,12 +4,17 @@
   "package": "com.mineagent.neoforge.mixin",
   "compatibilityLevel": "JAVA_21",
   "server": [
-    "NameTagMixin"
+    "NameTagMixin",
+    "BlockPropertyMixin",
+    "BlockBreakPropertyMixin"
   ],
   "client": [
     "ResidentSkinMixin"
   ],
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "mixins": [
+    "ResidentNameMixin"
+  ]
 }

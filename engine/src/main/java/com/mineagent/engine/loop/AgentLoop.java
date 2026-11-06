@@ -895,8 +895,10 @@ public class AgentLoop {
             }
             // Skill and experiment transitions run on the authoritative server
             // thread. Each transition is bounded to one step per tick.
-            skillRuntime.tick(gameTick);
-            mechanismExplorer.tick(gameTick);
+            if (!suspended) {
+                skillRuntime.tick(gameTick);
+                mechanismExplorer.tick(gameTick);
+            }
             if (skillRuntime.active()) {
                 SkillRuntime.Snapshot skill = skillRuntime.snapshot();
                 rollingPlanner.onTaskProgress(skill.runId(),
@@ -1116,6 +1118,7 @@ public class AgentLoop {
     public synchronized void pause() {
         suspended = true;
         cancel();
+        skillRuntime.cancel("Agent paused", liveAssetGameTick.get());
     }
 
     /** Resume from a lifecycle pause and process the accumulated state once. */
@@ -1236,6 +1239,8 @@ public class AgentLoop {
         }
         return result;
     }
+
+    public boolean isLocalWorkActive(){return skillRuntime.active();}
 
     public SkillRuntime.StartResult startResidentWork(String goal,String sequence) {
         if (!(companion instanceof CompanionEntity ce) || !ce.isResident())
@@ -3859,6 +3864,10 @@ public class AgentLoop {
         sb.append("asks for another language, or they address you in a different ");
         sb.append("language (in which case match their language).\n\n");
 
+        if (companion instanceof com.mineagent.engine.entity.CompanionEntity resident && resident.isResident()) {
+            sb.append("\n## Independent resident interpretation\nYou have no human owner. References to an owner above describe legacy companion facilities, not a person commanding you. You choose your own goals and may accept or decline ordinary player requests. OP policy and protection zones are mandatory. Compete peacefully: no PvP, deliberate griefing or stealing player property.\n");
+            sb.append("Build a life through projects, shelter, food, craft, exploration and social connections. Use resident_work for bounded physical sequences so your body keeps working between model turns. Talk with nearby people and residents; coordinate community work through coordinate_team. Relationships are personal evolving notes, with no required romance, fixed stages or automatic mutual agreement. Record current goals, unfinished work, meaningful events, boundaries and relationship changes using resident_memory. Recall older relevant notes before acting on someone else's property or commitments. React to weather and visible surroundings naturally; do not invent observations.\n");
+        }
         return sb.toString();
     }
 

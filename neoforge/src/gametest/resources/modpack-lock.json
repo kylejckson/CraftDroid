@@ -1,0 +1,27 @@
+{
+  "minecraft": "1.21.1",
+  "neoforge": "21.1.265",
+  "mods": [
+    {
+      "id": "mekanism",
+      "version": "10.7.19.85",
+      "filename": "Mekanism-1.21.1-10.7.19.85.jar",
+      "url": "https://cdn.modrinth.com/data/Ce6I4WUE/versions/5KzzycBT/Mekanism-1.21.1-10.7.19.85.jar",
+      "sha512": "66745825330a98f3e4a5ea3a44aff8b00870f715c144edc38dd2f61b4240589600b58ae89efac3b54dbb5aa430b1059dac1a28fd71cac5cc9002bbeb5ba3f22b"
+    },
+    {
+      "id": "ae2",
+      "version": "19.2.18",
+      "filename": "appliedenergistics2-19.2.18.jar",
+      "url": "https://cdn.modrinth.com/data/XxWD5pD3/versions/KDnFUmMm/appliedenergistics2-19.2.18.jar",
+      "sha512": "39bc4cf733a4321631e2637a1a6dfd3527135fdac1b572534e6fd1f9eab7a6dd92d56c5fa066263c95149c9b20cabdd1fd3dff80bea515381b1d2d754cad26c3"
+    },
+    {
+      "id": "guideme",
+      "version": "21.1.22",
+      "filename": "guideme-21.1.22.jar",
+      "url": "https://cdn.modrinth.com/data/Ck4E7v7R/versions/QeYKsstN/guideme-21.1.22.jar",
+      "sha512": "2a7b29143c1bef18375f221c337c6e744d04b79bc3cc10cadac46b7d6bb217ad78c51a3c33cd802b221cc7b38ff04a3f7064bd63d292e53bf9f3e09047eeda24"
+    }
+  ]
+}

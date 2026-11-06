@@ -2,7 +2,7 @@
 
 ### Forked from [MineAgent](https://github.com/bingdongni/MineAgent)
 
-Persistent autonomous residents for NeoForge 1.21.1 are under active development. See the [resident setup, OP commands and validation status](docs/AUTONOMOUS_AGENTS.md) for DeepSeek Flash, protection regions, personal memories, server-only vision and PNG skins.
+Persistent autonomous residents for NeoForge 1.21.1 are under active development. See the [resident quickstart](docs/RESIDENT_QUICKSTART.md) and [OP commands and validation status](docs/AUTONOMOUS_AGENTS.md) for DeepSeek Flash, protection regions, personal memories, server-only vision and PNG skins.
 
 CraftDroid is an English-language fork maintained at [kylejckson/CraftDroid](https://github.com/kylejckson/CraftDroid). Original MineAgent code and research are by bingdongni and upstream contributors. Historical validation records describe upstream builds and retain their original artifact names and hashes.
 

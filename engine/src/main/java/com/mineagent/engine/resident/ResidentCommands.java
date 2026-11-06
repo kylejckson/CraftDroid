@@ -23,8 +23,29 @@ public final class ResidentCommands {
     public static void register(CommandDispatcher<CommandSourceStack> d) {
         d.register(literal("craftdroid").requires(s->s.hasPermission(2))
             .executes(c->run(c,s->"CraftDroid: spawn [name], list, inspect <name>, rename <name> <newName>, pause/resume/remove <name>, biography <name> <text>, personality <name> <trait> <0..1>, skin <name> <player>, remember <name> <target UUID> <kind> <text>. Settings: config/craftdroid-residents.json"))
+             .then(literal("share").then(argument("pos",net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos()).executes(c->run(c,s->{
+                com.mineagent.engine.protection.PropertyLedger.share(s.getLevel(),net.minecraft.commands.arguments.coordinates.BlockPosArgument.getLoadedBlockPos(c,"pos"));return "Block shared with residents; OP zones still apply";
+            }))))
             .then(literal("status").executes(c->run(c,s->Residents.status())))
             .then(literal("reload").executes(c->run(c,s->{Residents.reload(s.getServer());return "Settings reloaded; saved residents queued for restoration";})))
+            .then(literal("populate").then(argument("count",IntegerArgumentType.integer(1,32)).executes(c->run(c,s->{
+                int count=IntegerArgumentType.getInteger(c,"count");
+                if(Residents.profiles().size()+count>Residents.settings().populationLimit())throw new IllegalArgumentException("Requested group exceeds the population limit");
+                var created=new java.util.ArrayList<UUID>();
+                try {
+                    var origin=s.getEntity()==null?s.getLevel().getSharedSpawnPos():BlockPos.containing(s.getPosition());
+                    for(int i=0;i<count;i++)created.add(Residents.create(s.getServer(),s.getLevel(),origin.offset(i%4,0,i/4),null).id());
+                    return "Created "+count+" independent residents with persistent random names and personalities";
+                }catch(Exception failure){for(var id:created)Residents.remove(id);throw failure;}
+            }))))
+            .then(literal("invite").then(argument("text",StringArgumentType.greedyString()).executes(c->run(c,s->{
+                String text=value(c,"text");if(text.length()>1000)throw new IllegalArgumentException("Keep the invitation within 1000 characters");
+                for(var p:Residents.profiles()){
+                    Residents.remember(p.id(),new ResidentProfile.Memory(p.id(),"community_project",text,"Invitation from OP "+s.getTextName(),s.getLevel().getGameTime()));
+                    MineAgentEngine.getCompanion(p.id()).ifPresent(state->{state.loop.onAmbientEvent("Community invitation (you choose how to respond): "+text);if(!p.paused()&&Residents.hasCredentials())state.loop.wake("community_invitation");});
+                }
+                Residents.save();return "Invitation recorded for all residents as a soft community project";
+            }))))
             .then(literal("spawn").executes(c->spawn(c,null))
                 .then(argument("name",StringArgumentType.word()).executes(c->spawn(c,value(c,"name")))))
             .then(literal("list").executes(c->run(c,s->Residents.profiles().stream().map(p->p.name()+" ["+p.id()+"] "+(p.paused()?"paused":"active")+" "+p.dimension()).reduce((a,b)->a+"\n"+b).orElse("No residents"))))

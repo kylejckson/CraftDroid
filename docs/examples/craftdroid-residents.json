@@ -1,0 +1,10 @@
+{
+  "populationLimit": 10,
+  "decisionIntervalTicks": 1200,
+  "maxConcurrentTurns": 2,
+  "maxOutputTokens": 1024,
+  "provider": "deepseek",
+  "model": "deepseek-flash",
+  "baseUrl": "https://api.deepseek.com",
+  "requestsPerMinute": 30
+}

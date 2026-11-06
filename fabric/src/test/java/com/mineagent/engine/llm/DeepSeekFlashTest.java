@@ -37,4 +37,21 @@ final class DeepSeekFlashTest {
         assertThrows(IllegalArgumentException.class, () -> new ChatMessage("system", "bad", null, null, scene.images()));
         assertThrows(IllegalArgumentException.class, () -> ChatMessage.PngImage.fromBytes(new byte[]{1,2}));
     }
+
+    @Test void actualTransportSendsNonThinkingVisionAndParsesTools() throws Exception {
+        var server=com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("127.0.0.1",0),0);
+        var captured=new java.util.concurrent.atomic.AtomicReference<JsonObject>();
+        server.createContext("/v1/chat/completions",exchange->{
+            captured.set(com.google.gson.JsonParser.parseString(new String(exchange.getRequestBody().readAllBytes(),java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject());
+            byte[] response="{\"id\":\"mock\",\"model\":\"deepseek-flash\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"sign1\",\"type\":\"function\",\"function\":{\"name\":\"inspect_sign\",\"arguments\":\"{}\"}}]},\"finish_reason\":\"tool_calls\"}]}".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200,response.length);exchange.getResponseBody().write(response);exchange.close();
+        });server.start();
+        try {
+            var image=ChatMessage.PngImage.fromBytes(com.mineagent.engine.skin.SkinPng.generated(java.util.UUID.randomUUID()));
+            var result=provider.complete("http://127.0.0.1:"+server.getAddress().getPort(),"test-only-key","deepseek-flash",List.of(new ChatMessage("user","Look",null,null,List.of(image))),List.of(),.7,128,"none");
+            assertEquals("disabled",captured.get().getAsJsonObject("thinking").get("type").getAsString());
+            assertEquals("image_url",captured.get().getAsJsonArray("messages").get(0).getAsJsonObject().getAsJsonArray("content").get(1).getAsJsonObject().get("type").getAsString());
+            assertEquals("tool_calls",result.finishReason());assertEquals("inspect_sign",result.choice().message().toolCalls().getFirst().name());
+        }finally{server.stop(0);}
+    }
 }

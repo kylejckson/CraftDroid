@@ -16,12 +16,13 @@ import java.util.*;
 public final class AgentProtection {
     public static final RegionRules RULES=new RegionRules();
     private static Path file;
-    private static boolean valid=true;
+    private static volatile boolean valid=true;
     private static final Map<UUID,net.minecraft.world.phys.Vec3> SAFE=new HashMap<>();
     private static final Map<UUID,String> SAFE_DIM=new HashMap<>();
     private AgentProtection() {}
     public static void load(Path data) {
         for(var r:RULES.regions())RULES.remove(r.name());SAFE.clear();SAFE_DIM.clear();valid=true;
+        PropertyLedger.load(data);
         file=data.resolve("craftdroid/regions.json");
         if(!Files.exists(file))return;
         try {
@@ -44,6 +45,9 @@ public final class AgentProtection {
     public static boolean mayBreak(ServerPlayer actor,BlockPos pos) {
         if(!allows(actor.level(),pos,RegionRules.Action.BREAK))return false;
         if(!isResident(actor))return true;
+        if(!PropertyLedger.healthy())return false;
+        if(PropertyLedger.isHumanOwned(actor.level(),pos))return false;
+        if(PropertyLedger.isResidentOwned(actor.level(),pos))return true;
         // Unknown crafted blocks and containers are not mining resources. Existing property needs OP regions.
         var state=actor.level().getBlockState(pos);String id=BuiltInRegistries.BLOCK.getKey(state.getBlock()).getPath();
         return !state.hasBlockEntity()&&(state.is(BlockTags.LOGS)||state.is(BlockTags.LEAVES)||state.is(BlockTags.DIRT)
@@ -56,22 +60,32 @@ public final class AgentProtection {
     public static boolean mayUse(ServerPlayer actor,BlockPos pos) {
         if(!allows(actor.level(),pos,RegionRules.Action.USE))return false;
         if(!isResident(actor))return true;
-        String item=BuiltInRegistries.ITEM.getKey(actor.getMainHandItem().getItem()).getPath();
-        return !(item.contains("lava_bucket")||item.contains("flint_and_steel")||item.contains("fire_charge")||item.equals("tnt")||item.contains("end_crystal"));
+        for (var stack : List.of(actor.getMainHandItem(),actor.getOffhandItem())) {
+            String item=BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath();
+            if(item.contains("lava_bucket")||item.contains("flint_and_steel")||item.contains("fire_charge")||item.equals("tnt")||item.contains("end_crystal"))return false;
+        }
+        return PropertyLedger.mayUse(actor,pos);
     }
     public static void enforcePosition(ServerPlayer actor) {
-        var box=actor.getBoundingBox();boolean permitted=true;
-        for(int x=0;x<2;x++)for(int y=0;y<2;y++)for(int z=0;z<2;z++)
-            permitted &= allows(actor.level(),BlockPos.containing(x==0?box.minX:box.maxX-.001,y==0?box.minY:box.maxY-.001,z==0?box.minZ:box.maxZ-.001),RegionRules.Action.ENTER);
+        boolean permitted=positionAllowed(actor,actor.position());
         UUID id=actor.getUUID();String dim=actor.level().dimension().location().toString();
         if(permitted){SAFE.put(id,actor.position());SAFE_DIM.put(id,dim);return;}
         var safe=SAFE.get(id);
-        if(safe!=null&&dim.equals(SAFE_DIM.get(id))&&allows(actor.level(),BlockPos.containing(safe),RegionRules.Action.ENTER)) {
+        boolean canRestore=safe!=null&&dim.equals(SAFE_DIM.get(id))&&positionAllowed(actor,safe);
+        boolean evacuated=!canRestore&&valid&&com.mineagent.engine.entity.SafeTeleport.near(actor,actor.serverLevel(),actor.blockPosition(),actor.getYRot(),actor.getXRot());
+        final boolean restored=canRestore||evacuated;
+        if(canRestore) {
             actor.teleportTo(safe.x,safe.y,safe.z);actor.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
         }
         MineAgentEngine.allCompanions().stream().filter(s->s.companion.serverPlayer()==actor).findFirst().ifPresent(s->{s.auction.cancelTask();
-            if(safe==null||!dim.equals(SAFE_DIM.get(id)))s.loop.pause();
+            if(!restored){s.lifecycle.pauseByOwner();s.companion.inputDriver().clear();}
             else s.loop.onAmbientEvent("OP region blocked movement; choose an allowed route.");});
+    }
+    private static boolean positionAllowed(ServerPlayer actor,net.minecraft.world.phys.Vec3 pos){
+        var delta=pos.subtract(actor.position());var box=actor.getBoundingBox().move(delta);
+        for(int x=0;x<2;x++)for(int y=0;y<2;y++)for(int z=0;z<2;z++)
+            if(!allows(actor.level(),BlockPos.containing(x==0?box.minX:box.maxX-.001,y==0?box.minY:box.maxY-.001,z==0?box.minZ:box.maxZ-.001),RegionRules.Action.ENTER))return false;
+        return true;
     }
     public static void forget(UUID id){SAFE.remove(id);SAFE_DIM.remove(id);}
 }

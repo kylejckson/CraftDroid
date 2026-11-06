@@ -21,7 +21,7 @@ On a 4GB server, begin with one or two agents sharing a pregenerated area. Ten i
 
 ## Validation status
 
-The component suite and dual-loader release checks pass. Native Fabric scenarios and a real NeoForge dedicated-server scenario exercise resident identity, inventory restoration, protection, no-PvP, and server-only PNG capture. No live provider call has been made; paid-model autonomy and the target modpack remain separate validation gates.
+The component suite (291 tests) and dual-loader release checks pass. See the [dated validation evidence](RESIDENT_VALIDATION.md). Native Fabric scenarios and a real NeoForge dedicated-server scenario exercise resident identity, inventory restoration, protection, no-PvP, and server-only PNG capture. No live provider call has been made; paid-model autonomy and the target modpack remain separate validation gates.
 
 ## Resident controls (implemented)
 
@@ -49,3 +49,24 @@ Validation: full dual-loader build, six Fabric native scenarios, and a NeoForge 
 Residents receive deterministic varied procedural skins by default. OP HTTPS PNG links are size/dimension checked, decoded and re-encoded, cached in the world, and sent to matching CraftDroid clients in bounded packets. Supported images are 64×64 or legacy 64×32. This cosmetic client display path is separate from server-only agent vision. PNG appearance has not been visually checked with a human client. Named Minecraft skins remain supported.
 
 Run `./gradlew verifyReleaseArtifacts` for component tests, native scenarios and both loader artifacts. Credentials are never required for these tests. Live model behavior, arbitrary mod machines and sustained ten-agent performance on a 4GB modpack are not established by these checks.
+
+## Community life and property
+
+Use `/craftdroid populate <count>` to create a group with random persistent names, personalities and procedural skins, within the configured population limit. `/craftdroid invite <text>` records a soft project invitation for every resident; include a dimension, town bounds, available supplies and any initial social background in that text. Each inhabitant still chooses goals and collaborators. Seed different personal relationships using `remember` or biography edits; no fixed relationship ladder or forced mutual romance is encoded.
+
+Nearby chat enters personal observations. Addressing a resident by name, or speaking within eight blocks, can wake its model with a ten-second attention cooldown. Resident-to-resident speech wakes explicitly named recipients, limiting conversational fan-out. Ambient perception scans a bounded slice of nearby loaded cells, reads newly observed visible sign text, and notices weather/daylight changes. Older notes about nearby people, queried topics, promises and projects compete with recent notes for the bounded prompt context. `resident_memory` accepts a recall `query`.
+
+Normal new block placements are tracked in a bounded durable property ledger. Residents may maintain community-placed blocks, refuse to break newly placed human property, and refuse unshared containers or machines. Use `/craftdroid share <x y z>` to grant the community access to an existing block; this does not override hard zones. Pre-existing log/stone builds still require OP protection zones because their ownership cannot be inferred reliably. The ledger holds 32,768 occupied cells and fails closed for resident mutations on corruption or capacity exhaustion. Completed vanilla breaks release their entries.
+
+OP pause cancels both paid turns and local procedures, rejects queued body work, and clears movement input. Ordinary physics, hunger and damage continue. Protected movement restores the last permitted body position, or attempts a bounded loaded-area evacuation when a newly created zone encloses an agent; if neither is possible, body scheduling pauses for OP relocation. Protection checks both hands for known incendiary items and checks the extra cells of vanilla beds and doors. Unknown modded multi-block or delayed effects remain outside the current attribution guarantee.
+
+## Selected real-mod validation
+
+The build now targets NeoForge **21.1.265**, still Minecraft **1.21.1**. An isolated optional run pins **Mekanism 10.7.19.85**, **AE2 19.2.18**, and **GuideME 21.1.22** with SHA-512 checksums. Test jars are not bundled in CraftDroid. It exercises normal machine item placement, real FE injection, raw iron insertion, actual Mekanism smelting and ingot extraction, plus an AE2 charger public-inventory transfer using the production platform adapter. Public automation ports remain subject to the action tool's reach, visibility, property and zone checks. This does not establish general AE2 network autocrafting, every Mekanism chemical chain, or arbitrary machine/menu compatibility.
+
+```sh
+python scripts/provision-neoforge-tests.py
+./gradlew -Pneoforge_modpack=true :neoforge:verifyResidentGameTests
+```
+
+CI preserves the native XML and server logs. Each run uses a fresh disposable world under `neoforge/build/`; normal worlds are untouched. Native runs cap the Java heap at 3GB. A ten-resident smoke scenario checks ownerless paused bodies remain present and alive without API spending, and reports heap and loaded chunks. GameTest advances ticks without normal real-time pacing, so its elapsed time is not a TPS benchmark. No explicit per-resident simulation-ticket cap is currently implemented; navigation/perception are loaded-only, but vanilla server view/simulation distances and scattered residents still control much of chunk cost. Begin with a shared pregenerated area and one or two active model-driven residents on a 4GB host.

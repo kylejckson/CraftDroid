@@ -84,6 +84,11 @@ public class FakePlayerNetworkHandler extends ServerGamePacketListenerImpl {
     }
 
     @Override
+    public void send(Packet<?> packet, net.minecraft.network.PacketSendListener listener) {
+        // Mods may use the callback overload. A resident has no negotiated remote client.
+    }
+
+    @Override
     public void onDisconnect(DisconnectionDetails details) {
         fakeConnection.close();
     }

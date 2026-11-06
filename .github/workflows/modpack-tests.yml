@@ -43,3 +43,34 @@ jobs:
             fabric/src/modtest/resources/modpack-lock.json
             fabric/build/real-mods/${{ matrix.profile }}/nested-manifest.json
           if-no-files-found: warn
+
+  neoforge-machines:
+    name: NeoForge / Mekanism and AE2
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Provision checksum-pinned machine dependencies
+        run: python scripts/provision-neoforge-tests.py
+      - name: Test actual NeoForge machine operations and residents
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon -Pneoforge_modpack=true :neoforge:verifyResidentGameTests
+      - name: Preserve native NeoForge evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neoforge-real-machine-evidence
+          path: |
+            neoforge/build/gametest-modpack-results.xml
+            neoforge/build/gametest-modpack/logs/latest.log
+            neoforge/src/gametest/resources/modpack-lock.json
+          if-no-files-found: warn

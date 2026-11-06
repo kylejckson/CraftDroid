@@ -21,4 +21,11 @@ class SkinPngTest {
         for(String url:java.util.List.of("http://example.com/a.png","https://127.0.0.1/a.png","https://[::1]/a.png","https://169.254.169.254/a.png","https://user:pass@example.com/a.png","https://example.com:8443/a.png"))
             assertThrows(IOException.class,()->ResidentSkins.validatePublicUrl(URI.create(url)),url);
     }
+    @Test void legacySkinsExpandAndMirrorLimbsForModernPlayerModels() throws Exception {
+        var image=new BufferedImage(64,32,BufferedImage.TYPE_INT_ARGB);image.setRGB(4,20,0xffb05020);
+        var encoded=new ByteArrayOutputStream();ImageIO.write(image,"png",encoded);
+        var normalized=ImageIO.read(new ByteArrayInputStream(SkinPng.canonical(encoded.toByteArray())));
+        assertEquals(64,normalized.getHeight());assertEquals(0xffb05020,normalized.getRGB(23,52));
+        assertEquals(255,normalized.getRGB(8,8)>>>24);
+    }
 }

@@ -17,7 +17,7 @@ public final class ResidentSkins {
     private static final Map<UUID,Long> VERSIONS=new HashMap<>();
     private static final ThreadPoolExecutor WORK=new ThreadPoolExecutor(1,1,0,TimeUnit.MILLISECONDS,new ArrayBlockingQueue<>(32),r->{Thread t=new Thread(r,"CraftDroid-skins");t.setDaemon(true);return t;},new ThreadPoolExecutor.AbortPolicy());
     private static final HttpClient HTTP=HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NEVER).connectTimeout(Duration.ofSeconds(8)).build();
-    private static long epoch;
+    private static volatile long epoch;
     private ResidentSkins() {}
     public static void reset(){epoch++;CACHE.clear();VERSIONS.clear();WORK.getQueue().clear();}
     public static void forget(UUID id){

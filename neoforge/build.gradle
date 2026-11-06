@@ -41,6 +41,9 @@ sourceSets {
     }
 }
 
+def withTestMods = providers.gradleProperty('neoforge_modpack').map { it.toBoolean() }.getOrElse(false)
+def nativeReport = withTestMods ? 'gametest-modpack-results.xml' : 'gametest-results.xml'
+
 dependencies {
     implementation project(':api')
 }
@@ -50,6 +53,10 @@ sourceSets {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
         runtimeClasspath += output + sourceSets.main.output + sourceSets.main.runtimeClasspath
     }
+}
+
+if (withTestMods) {
+    dependencies { gametestRuntimeOnly fileTree(dir: 'build/testmods', include: '*.jar') }
 }
 
 neoForge {
@@ -73,10 +80,12 @@ neoForge {
             type = "gameTestServer"
             sourceSet = sourceSets.gametest
             mods = [project.neoForge.mods.getByName('mineagent'), project.neoForge.mods.getByName('mineagent_test')]
-            gameDirectory = file('build/gametest')
+            gameDirectory = file(withTestMods ? 'build/gametest-modpack' : 'build/gametest')
+            jvmArgument '-Xmx3G'
+            systemProperty 'craftdroid.modpackTests', withTestMods.toString()
             systemProperty 'neoforge.enabledGameTestNamespaces', 'mineagent_test'
             systemProperty 'neoforge.gameTestServer', 'true'
-            systemProperty 'craftdroid.testReport', layout.buildDirectory.file('gametest-results.xml').get().asFile.absolutePath
+            systemProperty 'craftdroid.testReport', layout.buildDirectory.file(nativeReport).get().asFile.absolutePath
         }
         client {
             mods = [project.neoForge.mods.getByName('mineagent')]
@@ -102,13 +111,26 @@ processResources {
 
 tasks.named('runGametest') {
     timeout = java.time.Duration.ofMinutes(5)
-    doFirst { delete layout.buildDirectory.file('gametest-results.xml').get().asFile }
+    doFirst {
+        delete layout.buildDirectory.file(nativeReport).get().asFile
+        delete file(withTestMods ? 'build/gametest-modpack/world' : 'build/gametest/world')
+        if(withTestMods) {
+            def lock = new groovy.json.JsonSlurper().parse(file('src/gametest/resources/modpack-lock.json'))
+            def actual = fileTree(dir:'build/testmods',include:'*.jar').files.collect{it.name}.toSet()
+            if(actual != lock.mods.collect{it.filename}.toSet())throw new GradleException('Run scripts/provision-neoforge-tests.py first; isolated mods do not match the lock')
+            lock.mods.each { mod ->
+                def bytes=file('build/testmods/'+mod.filename).bytes
+                if(java.security.MessageDigest.getInstance('SHA-512').digest(bytes).encodeHex().toString()!=mod.sha512)
+                    throw new GradleException('Test dependency checksum mismatch: '+mod.filename)
+            }
+        }
+    }
 }
 
 tasks.register('verifyResidentGameTests') {
     dependsOn 'runGametest'
     doLast {
-        def report = layout.buildDirectory.file('gametest-results.xml').get().asFile
+        def report = layout.buildDirectory.file(nativeReport).get().asFile
         if (!report.isFile()) throw new GradleException('Missing native NeoForge report')
         def factory = javax.xml.parsers.DocumentBuilderFactory.newInstance()
         factory.setFeature('http://apache.org/xml/features/disallow-doctype-decl', true)
@@ -117,6 +139,8 @@ tasks.register('verifyResidentGameTests') {
         def cases = xml.getElementsByTagName('testcase')
         def names = (0..<cases.length).collect { cases.item(it).getAttribute('name').toLowerCase() }
         if (!names.any { it.contains('residentlifecycleandpolicy') }) throw new GradleException('Required NeoForge resident scenario did not execute')
+        if(!names.any{it.contains('tenresidentswithoutahuman')})throw new GradleException('Native population scenario did not execute')
+        if(withTestMods&&!names.any{it.contains('realmachineports')})throw new GradleException('Real-mod scenario did not execute')
         logger.lifecycle("Verified ${cases.length} native NeoForge scenarios")
     }
 }

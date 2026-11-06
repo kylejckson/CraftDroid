@@ -814,6 +814,12 @@ public final class MineAgentEngine {
         } catch (RuntimeException error) {
             if (loop != null) loop.shutdown();
             COMPANIONS.remove(id);
+            var residents = OWNER_TO_ALL_COMPANIONS.get(CompanionEntity.RESIDENT_COMMUNITY);
+            if (residents != null) {
+                residents.remove(id);
+                if (residents.isEmpty()) {OWNER_TO_ALL_COMPANIONS.remove(CompanionEntity.RESIDENT_COMMUNITY);OWNER_TO_COMPANION.remove(CompanionEntity.RESIDENT_COMMUNITY);}
+                else OWNER_TO_COMPANION.put(CompanionEntity.RESIDENT_COMMUNITY,residents.getFirst());
+            }
             COMPANION_PLAYER_UUIDS.remove(id);
             COMPANION_MODES.remove(id);
             if (body != null) FakePlayerFactory.unregister(level.getServer(), body);
@@ -1190,7 +1196,7 @@ public final class MineAgentEngine {
         // Drain pending tasks
         for (var pending : CompanionTickDispatcher.drain()) {
             var state = COMPANIONS.get(pending.player().companionId());
-            if (state != null) {
+            if (state != null && !state.lifecycle.isPaused() && !state.lifecycle.isDead()) {
                 try {
                     // TaskRecord defaults its absolute deadline to zero. Tools
                     // dispatch from the asynchronous LLM thread and cannot read
@@ -1237,7 +1243,7 @@ public final class MineAgentEngine {
                 TaskStatusTool.updateTaskInfo(pending.player().companionId(),
                         pending.record().toolCallId(),
                         pending.record().getClass().getSimpleName(),
-                        TaskState.CANCELLED, "Companion is no longer active",
+                        TaskState.CANCELLED, "Companion is inactive or paused",
                         null, 0L);
             }
         }
