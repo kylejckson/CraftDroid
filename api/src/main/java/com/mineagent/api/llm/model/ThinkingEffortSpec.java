@@ -338,9 +338,9 @@ public final class ThinkingEffortSpec {
 
     private static ThinkingEffortSpec forDeepSeek(String m, String model) {
         // V4-Pro/Flash — thinking.type + reasoning_effort (high/max), CAN disable
-        if (m.startsWith("deepseek-v4")) {
+        if (m.equals("deepseek-flash") || m.startsWith("deepseek-v4")) {
             return new ThinkingEffortSpec(model,
-                    List.of(OFF, LOW, MEDIUM, HIGH, XHIGH, MAX),
+                    List.of(OFF, LOW, HIGH, MAX),
                     HIGH, true, true);
         }
         // V3.2 (Alibaba Cloud) — hybrid, enable_thinking + reasoning_effort

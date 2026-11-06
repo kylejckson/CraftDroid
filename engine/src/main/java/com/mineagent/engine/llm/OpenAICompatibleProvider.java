@@ -220,7 +220,7 @@ public class OpenAICompatibleProvider implements LLMProvider {
         if (model == null || model.isBlank()) return;
         String e = effort.toLowerCase();
         String m = model.toLowerCase();
-        String lvl = "off".equals(e) ? null : e; // null means "disable"
+        String lvl = ("off".equals(e) || "none".equals(e)) ? null : e; // null means "disable"
 
         switch (providerId) {
             case "openai" -> injectOpenAI(body, m, e, lvl);
@@ -335,7 +335,7 @@ public class OpenAICompatibleProvider implements LLMProvider {
     // V3/chat/reasoner: NOT supported
     private void injectDeepSeek(JsonObject body, String m, String e, String lvl) {
         // V4 — use thinking.type for on/off, reasoning_effort for intensity
-        if (m.startsWith("deepseek-v4")) {
+        if (m.equals("deepseek-flash") || m.startsWith("deepseek-v4")) {
             if (lvl == null) {
                 // off / minimal → disable thinking via thinking.type
                 JsonObject thinking = new JsonObject();
@@ -347,8 +347,8 @@ public class OpenAICompatibleProvider implements LLMProvider {
                 thinking.addProperty("type", "enabled");
                 body.add("thinking", thinking);
                 String mapped = switch (lvl) {
-                    case "low", "medium" -> "high";
-                    case "xhigh" -> "max";
+                    case "medium", "xhigh" -> "high";
+                    case "minimal" -> "low";
                     default -> lvl; // high, max pass through
                 };
                 body.addProperty("reasoning_effort", mapped);
@@ -578,7 +578,22 @@ public class OpenAICompatibleProvider implements LLMProvider {
             //     OpenAI-compatible providers (DeepSeek/Qwen/GLM/Kimi/Grok/MiniMax).
             //   - assistant without tool_calls: must have content
             //   - user/system: must have content (shouldn't be null, but defensive)
-            if ("tool".equals(msg.role())) {
+            if (!msg.images().isEmpty()) {
+                JsonArray content = new JsonArray();
+                JsonObject text = new JsonObject();
+                text.addProperty("type", "text");
+                text.addProperty("text", Objects.toString(msg.content(), ""));
+                content.add(text);
+                for (var image : msg.images()) {
+                    JsonObject part = new JsonObject();
+                    part.addProperty("type", "image_url");
+                    JsonObject url = new JsonObject();
+                    url.addProperty("url", image.dataUrl());
+                    part.add("image_url", url);
+                    content.add(part);
+                }
+                msgObj.add("content", content);
+            } else if ("tool".equals(msg.role())) {
                 msgObj.addProperty("content",
                         msg.content() != null ? msg.content() : "");
             } else if (msg.content() != null) {
@@ -903,7 +918,7 @@ public class OpenAICompatibleProvider implements LLMProvider {
                 "https://api.deepseek.com",
                 List.of(
                         // V4 family (V4-Flash released July 31, 2026; substantially improved agent capabilities).
-                        "deepseek-v4-pro", "deepseek-v4-flash",
+                        "deepseek-flash", "deepseek-v4-pro", "deepseek-v4-flash",
                         // V3.2 family (scheduled retirement: October 10, 2026).
                         "deepseek-chat", "deepseek-reasoner",
                         "deepseek-v3", "deepseek-v3.2"
