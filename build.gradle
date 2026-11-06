@@ -150,7 +150,7 @@ tasks.register('verifyGameTests') {
 }
 
 tasks.register('verifyReleaseArtifacts') {
-    dependsOn ':fabric:build', ':neoforge:build', 'verifyGameTests'
+    dependsOn ':fabric:build', ':neoforge:build', 'verifyGameTests', ':neoforge:verifyResidentGameTests'
     def loaders = ['fabric', 'neoforge']
     def artifacts = loaders.collect { rootProject.file("${it}/build/libs/craftdroid-${it}-${project.version}.jar") }
     def manifest = layout.buildDirectory.file('release-artifacts.sha256')
@@ -184,7 +184,7 @@ tasks.register('verifyReleaseArtifacts') {
                 if (archive.getEntry('com/mineagent/gametest/LearningGameTests.class') != null)
                     throw new GradleException("Test-only mod leaked into ${artifact.name}")
                 if (archive.entries().toList().any { entry ->
-                    ['com/mineagent/modtest/', 'techreborn/', 'reborncore/', 'vectorwing/farmersdelight/',
+                    ['com/mineagent/neoforge/gametest/', 'com/mineagent/modtest/', 'techreborn/', 'reborncore/', 'vectorwing/farmersdelight/',
                      'com/mattidragon/extendeddrawers/'].any { prefix -> entry.name.startsWith(prefix) }
                 }) throw new GradleException("Real-mod test classes or third-party code leaked into ${artifact.name}")
                 def metadata = loaders[index] == 'fabric' ? 'fabric.mod.json' : 'META-INF/neoforge.mods.toml'

@@ -42,6 +42,8 @@ jobs:
         with:
           name: craftdroid-test-evidence
           path: |
+            neoforge/build/gametest-results.xml
+            neoforge/build/gametest/logs/latest.log
             fabric/build/gametest-results.xml
             fabric/build/test-results/test/*.xml
             fabric/build/reports/tests/test/

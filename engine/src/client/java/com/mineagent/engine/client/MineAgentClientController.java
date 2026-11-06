@@ -189,6 +189,8 @@ public final class MineAgentClientController {
         }
 
         switch (payload.action()) {
+            case "resident_skin_remove" -> com.mineagent.engine.client.skin.ResidentSkinTextures.remove(payload.companionId());
+            case "resident_skin_part" -> com.mineagent.engine.client.skin.ResidentSkinTextures.receive(payload.companionId(),payload.data());
             case "companion_chat" -> {
                 String message = payload.data() == null ? "" : payload.data();
                 if (chatScreen != null && client.screen == chatScreen) {
@@ -328,6 +330,7 @@ public final class MineAgentClientController {
      * transport installed for the life of the game process.
      */
     public static void clearClientState() {
+        com.mineagent.engine.client.skin.ResidentSkinTextures.clear();
         chatScreen = null;
         companionId = null;
         COMPANION_IDS.clear();

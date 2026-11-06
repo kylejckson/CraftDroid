@@ -6,7 +6,9 @@
   "server": [
     "NameTagMixin"
   ],
-  "client": [],
+  "client": [
+    "ResidentSkinMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }

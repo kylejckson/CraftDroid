@@ -760,6 +760,11 @@ public final class MineAgentEngine {
     }
 
     /** Spawn an owner-independent body with a persisted, rename-stable identity. */
+    public static void reloadResidentConfiguration() {
+        config = MineAgentConfig.load(configDirPath);
+        com.mineagent.engine.resident.Residents.configure(configDirPath);
+    }
+
     public static CompanionEntity spawnResident(com.mineagent.engine.resident.ResidentProfile profile,
                                                 net.minecraft.server.level.ServerLevel level,
                                                 net.minecraft.core.BlockPos position) {
@@ -798,9 +803,13 @@ public final class MineAgentEngine {
             OWNER_TO_COMPANION.putIfAbsent(CompanionEntity.RESIDENT_COMMUNITY,id);
             COMPANION_MODES.put(id, CompanionMode.FREE);
             restoreCompanionBody(citizen, profile.body());
-            if (profile.paused() || key == null || key.isBlank()) loop.pause();
+            if (profile.paused() || !com.mineagent.engine.resident.Residents.hasCredentials()) loop.pause();
             lifecycle.onSpawn(citizen);
+            if (profile.paused()) lifecycle.pauseByOwner();
             FakePlayerFactory.refreshPlayerInfo(body);
+            if(profile.skinPlayer().isBlank()||profile.skinPlayer().startsWith("https://"))
+                com.mineagent.engine.skin.ResidentSkins.prepare(body,profile.skinPlayer());
+            else FakePlayerFactory.applySkinAsync(body,profile.skinPlayer());
             return citizen;
         } catch (RuntimeException error) {
             if (loop != null) loop.shutdown();
@@ -1724,6 +1733,7 @@ public final class MineAgentEngine {
      * Automatically restores their companion if one was saved.
      */
     public static void onPlayerJoin(ServerPlayer player) {
+        com.mineagent.engine.skin.ResidentSkins.sync(player);
         System.out.println("[CraftDroid] Player joined: " + player.getName().getString());
 
         // Check if this player has a saved companion

@@ -23,6 +23,9 @@ public final class Residents {
     private static final String[] NAMES={"Rowan","Mira","Ash","Sage","Juniper","Felix","Iris","Cedar","Luna","Theo","Hazel","Orion","Willow","Jasper","Nova","River"};
     private static ResidentSettings settings=ResidentSettings.DEFAULT;
     private static ResidentRepository repository;
+    private static volatile RequestLimiter limiter=new RequestLimiter(2,30);
+    public static RequestLimiter.Lease requestPermit() throws InterruptedException {return limiter.acquire();}
+    public static String status(){Runtime r=Runtime.getRuntime();return "Stored residents: "+profiles().size()+"; request attempts: "+limiter.admitted()+"; free request slots: "+limiter.availableSlots()+"; heap used MiB: "+((r.totalMemory()-r.freeMemory())/1048576)+"; heap max MiB: "+r.maxMemory()/1048576;}
     private static boolean writable=true,dirty;
     private static long ticks;
     private static final ExecutorService DISK=Executors.newSingleThreadExecutor(r->{Thread t=new Thread(r,"CraftDroid-resident-save");t.setDaemon(true);return t;});
@@ -38,6 +41,12 @@ public final class Residents {
             if(settings==null)throw new IllegalArgumentException("Resident settings cannot be null");
         } catch(Exception e) {throw new IllegalStateException("Invalid CraftDroid resident settings",e);}
     }
+    public static void reload(MinecraftServer server) {
+        for(var p:profiles())MineAgentEngine.getCompanion(p.id()).ifPresent(Residents::capture);
+        flush();for(var p:profiles())MineAgentEngine.despawnCompanion(p.id(),false);
+        MineAgentEngine.reloadResidentConfiguration();
+        start(server,MineAgentEngine.getWorldDataDir());
+    }
     public static ResidentSettings settings() {return settings;}
     public static synchronized List<ResidentProfile> profiles() {return List.copyOf(PROFILES.values());}
     public static synchronized ResidentProfile profile(UUID id) {return PROFILES.get(id);}
@@ -47,7 +56,10 @@ public final class Residents {
     }
     public static synchronized void start(MinecraftServer server,Path data) {
         try {lastSave.join();} catch(CompletionException e) {throw new IllegalStateException("Previous resident snapshot failed",e);}
+        limiter=new RequestLimiter(settings.maxConcurrentTurns(),settings.requestsPerMinute());
         com.mineagent.engine.protection.RegionCommands.clear();
+        com.mineagent.engine.vision.SceneCapture.reset();
+        com.mineagent.engine.skin.ResidentSkins.reset();
         PROFILES.clear();NEXT_DECISION.clear();DEAD_SINCE.clear();NEXT_SPEECH.clear();RESTORE.clear();ticks=0;dirty=false;writable=true;
         if(data==null)return;
         com.mineagent.engine.protection.AgentProtection.load(data);
@@ -78,11 +90,12 @@ public final class Residents {
         PROFILES.put(p.id(),p);dirty=true;
         MineAgentEngine.getCompanion(p.id()).ifPresent(s->{
             MineAgentEngine.renameResident(p.id(),p.name());s.loop.setPersonality(p.persona().toProfile());
-            if(p.paused()){s.auction.cancelTask();s.loop.pause();}else if(hasCredentials())s.loop.resume("resident_profile_updated");
+            if(p.paused()){s.auction.cancelTask();s.lifecycle.pauseByOwner();}else if(hasCredentials())s.lifecycle.resumeByOwner();
         });
         save();
     }
     public static synchronized void remove(UUID id) {
+        com.mineagent.engine.skin.ResidentSkins.forget(id);
         PROFILES.remove(id);RESTORE.remove(id);NEXT_DECISION.remove(id);DEAD_SINCE.remove(id);NEXT_SPEECH.remove(id);
         MineAgentEngine.despawnCompanion(id,false);dirty=true;save();
     }
@@ -118,6 +131,7 @@ public final class Residents {
     public static void flush() {save();try{lastSave.get(10,TimeUnit.SECONDS);}catch(Exception e){throw new IllegalStateException("Resident snapshot not flushed",e);}}
     public static synchronized void tick(MinecraftServer server) {
         ticks++;
+        com.mineagent.engine.vision.SceneCapture.tick();
         if(ticks%20==0&&!RESTORE.isEmpty()) {
             UUID id=RESTORE.removeFirst();var p=PROFILES.get(id);
             if(p!=null)try {

@@ -45,6 +45,13 @@ dependencies {
     implementation project(':api')
 }
 
+sourceSets {
+    gametest {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += output + sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+}
+
 neoForge {
     version = project.property('neoforge_version')
 
@@ -58,11 +65,25 @@ neoForge {
         }
     }
 
+    mods {
+        mineagent_test { sourceSet sourceSets.gametest }
+    }
     runs {
+        gametest {
+            type = "gameTestServer"
+            sourceSet = sourceSets.gametest
+            mods = [project.neoForge.mods.getByName('mineagent'), project.neoForge.mods.getByName('mineagent_test')]
+            gameDirectory = file('build/gametest')
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'mineagent_test'
+            systemProperty 'neoforge.gameTestServer', 'true'
+            systemProperty 'craftdroid.testReport', layout.buildDirectory.file('gametest-results.xml').get().asFile.absolutePath
+        }
         client {
+            mods = [project.neoForge.mods.getByName('mineagent')]
             client()
         }
         server {
+            mods = [project.neoForge.mods.getByName('mineagent')]
             server()
         }
     }
@@ -76,5 +97,26 @@ processResources {
         // NeoForge ModDev does not expand arbitrary Gradle placeholders by
         // default; without this, the installed mod reports "${version}".
         expand version: project.version
+    }
+}
+
+tasks.named('runGametest') {
+    timeout = java.time.Duration.ofMinutes(5)
+    doFirst { delete layout.buildDirectory.file('gametest-results.xml').get().asFile }
+}
+
+tasks.register('verifyResidentGameTests') {
+    dependsOn 'runGametest'
+    doLast {
+        def report = layout.buildDirectory.file('gametest-results.xml').get().asFile
+        if (!report.isFile()) throw new GradleException('Missing native NeoForge report')
+        def factory = javax.xml.parsers.DocumentBuilderFactory.newInstance()
+        factory.setFeature('http://apache.org/xml/features/disallow-doctype-decl', true)
+        def xml = factory.newDocumentBuilder().parse(report)
+        ['failure','error','skipped'].each { if(xml.getElementsByTagName(it).length) throw new GradleException("NeoForge tests contain ${it}") }
+        def cases = xml.getElementsByTagName('testcase')
+        def names = (0..<cases.length).collect { cases.item(it).getAttribute('name').toLowerCase() }
+        if (!names.any { it.contains('residentlifecycleandpolicy') }) throw new GradleException('Required NeoForge resident scenario did not execute')
+        logger.lifecycle("Verified ${cases.length} native NeoForge scenarios")
     }
 }

@@ -115,6 +115,8 @@ public final class SkillRuntime {
 
     private String runId;
     private String skillName;
+    private String proposedSequence;
+    private String proposedGoal;
     private List<Step> steps = List.of();
     private Status status = Status.IDLE;
     private int stepIndex;
@@ -158,8 +160,28 @@ public final class SkillRuntime {
         if (decoded.isEmpty()) {
             return new StartResult(false, null, "Skill has no executable actions");
         }
+        proposedSequence=null;
+        return begin(learned.name(), decoded, gameTick);
+    }
+
+    /** New plans are unverified until executed; success alone can promote them into learned skills. */
+    public synchronized StartResult startProposed(String goal,String sequence,long gameTick) {
+        if(active())return new StartResult(false,runId,"A procedure already owns execution");
+        if(goal==null||goal.isBlank()||goal.length()>256||sequence==null||sequence.length()>32768)
+            return new StartResult(false,null,"Supply a bounded goal and procedure");
+        try {
+            var decoded=decode(sequence,null);
+            var allowed=Set.of("goto","auto_mine","build","craft","equip_item","eat_item","collect_items","drop_items","transfer_items","transfer_port","interact_at","interact_entity","use_item","wait_for","look_around","inspect_block","inspect_gui","get_self_status");
+            if(decoded.stream().anyMatch(step->!allowed.contains(step.tool())))
+                return new StartResult(false,null,"Procedure contains an unsupported control or action");
+            proposedSequence=sequence;proposedGoal=goal;
+            return begin("work_"+UUID.randomUUID().toString().substring(0,8),decoded,gameTick);
+        } catch(IllegalArgumentException error) {return new StartResult(false,null,error.getMessage());}
+    }
+
+    private StartResult begin(String name,List<Step> decoded,long gameTick) {
         runId = "skill-" + UUID.randomUUID().toString().substring(0, 12);
-        skillName = learned.name();
+        skillName = name;
         steps = decoded;
         status = Status.RUNNING;
         stepIndex = 0;
@@ -174,7 +196,7 @@ public final class SkillRuntime {
         taskPausedAtTick = 0L;
         worldRevisionAtDispatch = worldModel.revision();
         return new StartResult(true, runId,
-                "Accepted " + steps.size() + " verified step(s)");
+                "Accepted " + steps.size() + " planned step(s); execution still requires evidence");
     }
 
     /** Advance at most one transition per server tick. */
@@ -305,7 +327,8 @@ public final class SkillRuntime {
         activeActionId = null;
         updatedTick = Math.max(updatedTick, gameTick);
         if (stepIndex >= steps.size()) {
-            library.recordResult(skillName, true);
+            if(proposedSequence!=null)library.registerSequence(skillName,proposedGoal,proposedGoal,proposedSequence,true);
+            else library.recordResult(skillName, true);
             terminal(Status.SUCCEEDED, "all skill effects verified", gameTick);
         } else {
             status = Status.RUNNING;
