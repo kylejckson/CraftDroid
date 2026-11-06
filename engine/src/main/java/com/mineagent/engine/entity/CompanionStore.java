@@ -92,9 +92,9 @@ public final class CompanionStore {
             root.add("companions", arr);
 
             writeAtomic(file, GSON.toJson(root));
-            System.out.println("[MineAgent] Saved " + companions.size() + " companion(s) to " + file);
+            System.out.println("[CraftDroid] Saved " + companions.size() + " companion(s) to " + file);
         } catch (Exception e) {
-            System.err.println("[MineAgent] Failed to save companions: " + e.getMessage());
+            System.err.println("[CraftDroid] Failed to save companions: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -131,13 +131,13 @@ public final class CompanionStore {
             }
             List<SavedCompanion> result = new ArrayList<>(valid.values());
             if (skipped > 0) {
-                System.err.println("[MineAgent] Skipped " + skipped
+                System.err.println("[CraftDroid] Skipped " + skipped
                         + " invalid saved companion record(s)");
             }
-            System.out.println("[MineAgent] Loaded " + result.size() + " saved companion(s)");
+            System.out.println("[CraftDroid] Loaded " + result.size() + " saved companion(s)");
             return result;
         } catch (Exception e) {
-            System.err.println("[MineAgent] Failed to load companions: " + e.getMessage());
+            System.err.println("[CraftDroid] Failed to load companions: " + e.getMessage());
             quarantine(file);
             return Collections.emptyList();
         }
@@ -280,9 +280,9 @@ public final class CompanionStore {
                 + ".corrupt-" + System.currentTimeMillis());
         try {
             Files.move(file, backup, StandardCopyOption.REPLACE_EXISTING);
-            System.err.println("[MineAgent] Preserved invalid companion store as " + backup);
+            System.err.println("[CraftDroid] Preserved invalid companion store as " + backup);
         } catch (IOException moveFailure) {
-            System.err.println("[MineAgent] Could not preserve invalid companion store: "
+            System.err.println("[CraftDroid] Could not preserve invalid companion store: "
                     + moveFailure.getMessage());
         }
     }

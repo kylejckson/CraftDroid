@@ -33,7 +33,7 @@ public record MineAgentConfig(
         boolean creativeReach
     ) {
         public static final CompanionConfig DEFAULTS = new CompanionConfig(
-            "MineAgent", "survival", "", false, false
+            "CraftDroid", "survival", "", false, false
         );
     }
 
@@ -87,8 +87,8 @@ public record MineAgentConfig(
                 mergeInto(merged, parsed.getAsJsonObject());
                 return normalize(GSON.fromJson(merged, MineAgentConfig.class));
             } catch (Exception e) {
-                System.err.println("[MineAgent] Failed to load config: " + e.getMessage());
-                System.err.println("[MineAgent] Using defaults");
+                System.err.println("[CraftDroid] Failed to load config: " + e.getMessage());
+                System.err.println("[CraftDroid] Using defaults");
             }
         }
         // Save defaults
@@ -171,9 +171,9 @@ public record MineAgentConfig(
             try (Writer writer = Files.newBufferedWriter(configFile, StandardCharsets.UTF_8)) {
                 GSON.toJson(DEFAULTS, writer);
             }
-            System.out.println("[MineAgent] Created default config at " + configFile);
+            System.out.println("[CraftDroid] Created default config at " + configFile);
         } catch (Exception e) {
-            System.err.println("[MineAgent] Failed to save default config: " + e.getMessage());
+            System.err.println("[CraftDroid] Failed to save default config: " + e.getMessage());
         }
     }
 
@@ -191,10 +191,10 @@ public record MineAgentConfig(
             try (Writer writer = Files.newBufferedWriter(configFile, StandardCharsets.UTF_8)) {
                 GSON.toJson(this, writer);
             }
-            System.out.println("[MineAgent] Config saved to " + configFile);
+            System.out.println("[CraftDroid] Config saved to " + configFile);
             return true;
         } catch (Exception e) {
-            System.err.println("[MineAgent] Failed to save config: " + e.getMessage());
+            System.err.println("[CraftDroid] Failed to save config: " + e.getMessage());
             return false;
         }
     }

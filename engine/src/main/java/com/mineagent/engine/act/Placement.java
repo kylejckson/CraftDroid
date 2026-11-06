@@ -132,7 +132,7 @@ public final class Placement {
                 }
             }
         } catch (Exception e) {
-            System.err.println("[MineAgent] Placement.placeBlock error: " + e.getMessage());
+            System.err.println("[CraftDroid] Placement.placeBlock error: " + e.getMessage());
             return false;
         }
     }
@@ -326,7 +326,7 @@ public final class Placement {
 
             return false;
         } catch (Exception e) {
-            System.err.println("[MineAgent] Placement.canPlaceAt error: " + e.getMessage());
+            System.err.println("[CraftDroid] Placement.canPlaceAt error: " + e.getMessage());
             return false;
         }
     }
@@ -386,7 +386,7 @@ public final class Placement {
 
             return defaultState;
         } catch (Exception e) {
-            System.err.println("[MineAgent] Placement.getPlacementState error: " + e.getMessage());
+            System.err.println("[CraftDroid] Placement.getPlacementState error: " + e.getMessage());
             return block != null ? block.defaultBlockState() : null;
         }
     }

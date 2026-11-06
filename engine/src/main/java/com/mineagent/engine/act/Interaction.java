@@ -98,7 +98,7 @@ public final class Interaction {
 
             return result;
         } catch (Exception e) {
-            System.err.println("[MineAgent] Interaction.interactBlock error: " + e.getMessage());
+            System.err.println("[CraftDroid] Interaction.interactBlock error: " + e.getMessage());
             return InteractionResult.FAIL;
         }
     }
@@ -134,7 +134,7 @@ public final class Interaction {
             if (result.shouldSwing()) player.swing(hand);
             return result;
         } catch (Exception e) {
-            System.err.println("[MineAgent] Interaction.interactEntity error: " + e.getMessage());
+            System.err.println("[CraftDroid] Interaction.interactEntity error: " + e.getMessage());
             return InteractionResult.FAIL;
         }
     }
@@ -183,7 +183,7 @@ public final class Interaction {
             InteractionResult result = interactBlock(player, pos, InteractionHand.MAIN_HAND);
             return result.consumesAction();
         } catch (Exception e) {
-            System.err.println("[MineAgent] Interaction.openContainer error: " + e.getMessage());
+            System.err.println("[CraftDroid] Interaction.openContainer error: " + e.getMessage());
             return false;
         }
     }
@@ -220,7 +220,7 @@ public final class Interaction {
 
             return result.consumesAction();
         } catch (Exception e) {
-            System.err.println("[MineAgent] Interaction.useItem error: " + e.getMessage());
+            System.err.println("[CraftDroid] Interaction.useItem error: " + e.getMessage());
             return false;
         }
     }
@@ -263,7 +263,7 @@ public final class Interaction {
             player.swing(InteractionHand.MAIN_HAND);
             return true;
         } catch (Exception e) {
-            System.err.println("[MineAgent] Interaction.attackEntity error: " + e.getMessage());
+            System.err.println("[CraftDroid] Interaction.attackEntity error: " + e.getMessage());
             return false;
         }
     }

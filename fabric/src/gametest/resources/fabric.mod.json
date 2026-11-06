@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "mineagent_gametest",
   "version": "1",
-  "name": "MineAgent development GameTests",
+  "name": "CraftDroid development GameTests",
   "environment": "server",
   "entrypoints": {
     "main": ["com.mineagent.gametest.LearningGameTests"],

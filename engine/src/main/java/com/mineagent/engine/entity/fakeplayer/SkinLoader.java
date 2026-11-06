@@ -33,7 +33,7 @@ public final class SkinLoader {
             .build();
 
     private static final ExecutorService SKIN_EXECUTOR = Executors.newCachedThreadPool(r -> {
-        var t = new Thread(r, "MineAgent-SkinLoader");
+        var t = new Thread(r, "CraftDroid-SkinLoader");
         t.setDaemon(true);
         return t;
     });
@@ -113,20 +113,20 @@ public final class SkinLoader {
             // Step 1: Get UUID from player name
             String uuid = fetchUuid(playerName);
             if (uuid == null) {
-                System.out.println("[MineAgent] Skin lookup: player '" + playerName + "' not found");
+                System.out.println("[CraftDroid] Skin lookup: player '" + playerName + "' not found");
                 return Optional.empty();
             }
 
             // Step 2: Get texture properties from UUID
             Optional<SkinResult> skin = fetchTextureProperty(uuid);
             if (skin.isPresent()) {
-                System.out.println("[MineAgent] Skin loaded for player '" + playerName + "'");
+                System.out.println("[CraftDroid] Skin loaded for player '" + playerName + "'");
             } else {
-                System.out.println("[MineAgent] No skin texture found for player '" + playerName + "'");
+                System.out.println("[CraftDroid] No skin texture found for player '" + playerName + "'");
             }
             return skin;
         } catch (Exception e) {
-            System.err.println("[MineAgent] Skin loading failed for '" + playerName + "': " + e.getMessage());
+            System.err.println("[CraftDroid] Skin loading failed for '" + playerName + "': " + e.getMessage());
             return Optional.empty();
         }
     }
@@ -150,7 +150,7 @@ public final class SkinLoader {
             return null; // Player not found
         }
         if (response.statusCode() != 200) {
-            System.err.println("[MineAgent] Mojang API error " + response.statusCode()
+            System.err.println("[CraftDroid] Mojang API error " + response.statusCode()
                     + ": " + response.body());
             return null;
         }
@@ -179,7 +179,7 @@ public final class SkinLoader {
                 HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() != 200) {
-            System.err.println("[MineAgent] Session server error " + response.statusCode());
+            System.err.println("[CraftDroid] Session server error " + response.statusCode());
             return Optional.empty();
         }
 

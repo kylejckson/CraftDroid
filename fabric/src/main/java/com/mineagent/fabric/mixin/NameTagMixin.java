@@ -40,7 +40,7 @@ public abstract class NameTagMixin {
 
         if (!MineAgentEngine.isCompanionOwnedBy(target.getUUID(), player.getUUID())) {
             player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                    "§c[MineAgent] Only the companion's owner can rename it."));
+                    "§c[CraftDroid] Only the companion's owner can rename it."));
             cir.setReturnValue(InteractionResult.FAIL);
             return;
         }
@@ -60,11 +60,11 @@ public abstract class NameTagMixin {
                 itemStack.shrink(1);
             }
             player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                    "§a[MineAgent] Companion renamed to '" + newName + "'!"));
+                    "§a[CraftDroid] Companion renamed to '" + newName + "'!"));
             cir.setReturnValue(InteractionResult.SUCCESS);
         } else {
             player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                    "§c[MineAgent] That companion name is invalid or already in use."));
+                    "§c[CraftDroid] That companion name is invalid or already in use."));
             cir.setReturnValue(InteractionResult.FAIL);
         }
     }

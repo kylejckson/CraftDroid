@@ -6,7 +6,7 @@ pluginManagement {
     }
 }
 
-rootProject.name = 'MineAgent'
+rootProject.name = 'CraftDroid'
 
 include 'api'
 include 'engine'

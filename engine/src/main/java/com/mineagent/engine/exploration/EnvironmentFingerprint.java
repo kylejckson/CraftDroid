@@ -117,7 +117,7 @@ public record EnvironmentFingerprint(String minecraftVersion, String loader,
                 Object version = metadataClass.getMethod("getVersion").invoke(metadata);
                 String text = String.valueOf(versionClass
                         .getMethod("getFriendlyString").invoke(version));
-                // MineAgent's own release version changes the learner, not the
+                // CraftDroid's own release version changes the learner, not the
                 // target mod contract. Memory format migration handles engine
                 // compatibility, so self-version must not stale every rule.
                 if (!"mineagent".equals(id)) out.add(id + "@" + text);

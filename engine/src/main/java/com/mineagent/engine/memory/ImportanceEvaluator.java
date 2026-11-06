@@ -5,66 +5,45 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * 动态重要性评估器 — 取代硬编码的关键词列表。
- *
- * <p><b>设计理念</b>：不同情境下"重要"的定义不同。
- * 挖矿时钻石重要，战斗时血量重要，建造时材料重要。
- * 不能用固定关键词列表硬性决定。
- *
- * <p><b>动态学习机制</b>（三渠道）：
- * <ol>
- *   <li><b>LLM 自评</b>：LLM 在工具调用结果中可标注 importance 字段，
- *       系统据此学习哪些模式重要</li>
- *   <li><b>情绪反推</b>：触发了强情绪变化的事件自动提升权重
- *       （被攻击→该类事件+1，找到钻石→该类事件+1）</li>
- *   <li><b>失败关联</b>：导致任务失败的工具结果自动标记重要</li>
- * </ol>
- *
- * <p><b>改进:</b>
- * <ul>
- *   <li>降低衰减率: 从0.01/tick降至0.002/tick，学到的权重保持更久</li>
- *   <li>改进特征提取: 多字段组合提取，减少特征冲突</li>
- *   <li>上下文感知: 结合当前任务类型动态调整重要性判断</li>
- * </ul>
+
+ * Dynamic importance evaluation: relevance varies with context (diamonds while mining, health in
+
+ * combat, materials while building). Learn through LLM importance annotations, strong emotion
+
+ * changes and task-failure associations. Lower decay from 0.01 to 0.002 preserves learned
+
+ * weights; multi-field features reduce collisions; task context adjusts relevance.
+
  */
 public class ImportanceEvaluator {
 
-    /**
-     * 事件特征 → 重要性权重 [0, 1]。
-     * 特征 = 工具名 + 结果内容的前N个有意义token。
-     */
+    /** Event feature to weight [0,1]. Features combine the tool name with meaningful result tokens. */
     private final Map<String, Float> featureWeights = new ConcurrentHashMap<>();
 
-    /** 权重调整步长。每次学习事件 +0.15，衰减 -0.002/tick。 */
+    /** Weight adjustment: +0.15 per learning event, -0.002 per decay tick. */
     private static final float LEARN_STEP = 0.15f;
-    private static final float DECAY_STEP = 0.002f; // 降低衰减率，从0.01降至0.002
+    private static final float DECAY_STEP = 0.002f; // Reduce decay from 0.01 to 0.002.
     private static final float MAX_WEIGHT = 1.0f;
     private static final float MIN_WEIGHT = 0.0f;
     private static final float DEFAULT_WEIGHT = 0.5f;
     private static final float IMPORTANT_THRESHOLD = 0.65f;
 
-    /** 学习次数统计（用于判断是否已有足够数据）。 */
+    /** Learning count indicates whether enough evidence is available. */
     private final AtomicInteger learnCount = new AtomicInteger(0);
 
-    /** 当前任务上下文（用于动态调整重要性） */
+    /** Current task context for dynamic importance adjustments. */
     private volatile String currentTaskContext = "";
 
-    /**
-     * 设置当前任务上下文。
-     * 在挖矿任务中，矿石相关特征重要性临时提升。
-     */
+    /** Set task context; temporarily favor related features, such as ores during mining. */
     public void setTaskContext(String taskDescription) {
         this.currentTaskContext = taskDescription != null ? taskDescription.toLowerCase() : "";
     }
 
-    /**
-     * 从工具结果中提取特征。
-     * 改进：多字段组合提取，减少特征冲突。
-     */
+    /** Extract multi-field features from tool results to reduce collisions. */
     private String extractFeature(String toolName, String resultContent) {
         if (resultContent == null) resultContent = "";
 
-        // 尝试提取多个字段组合成更精确的特征
+        // Combine multiple fields into a more precise feature.
         String type = extractJsonField(resultContent, "type");
         String name = extractJsonField(resultContent, "name");
         String block = extractJsonField(resultContent, "block");
@@ -72,7 +51,7 @@ public class ImportanceEvaluator {
         String item = extractJsonField(resultContent, "item");
         String target = extractJsonField(resultContent, "target");
 
-        // 组合特征：优先使用最具体的字段
+        // Prefer the most specific field in combined features.
         StringBuilder feature = new StringBuilder(toolName).append(":");
 
         if (block != null && !block.isEmpty()) {
@@ -89,8 +68,8 @@ public class ImportanceEvaluator {
         } else if (target != null && !target.isEmpty()) {
             feature.append("target=").append(target);
         } else {
-            // 无字段匹配：使用结果内容的hash作为兜底特征
-            // 取前20个字符的hash，避免长文本导致特征过于具体
+            // Fall back to a content hash when no fields match.
+            // Hash the first 20 characters to avoid overly specific long-text features.
             String content = resultContent.length() > 20 ?
                     resultContent.substring(0, 20) : resultContent;
             feature.append("content=").append(content.hashCode() % 1000);
@@ -99,7 +78,7 @@ public class ImportanceEvaluator {
         return feature.toString();
     }
 
-    /** 从 JSON 结果中提取指定字段值。 */
+    /** Extract a field value from a JSON result. */
     private String extractJsonField(String json, String field) {
         if (json == null || json.isBlank()) return null;
         String key = "\"" + field + "\":\"";
@@ -114,20 +93,17 @@ public class ImportanceEvaluator {
         return null;
     }
 
-    /**
-     * 查询某工具结果的重要性权重。
-     * 结合当前任务上下文动态调整。
-     */
+    /** Return a tool result's importance weight, dynamically adjusted for task context. */
     public float getWeight(String toolName, String resultContent) {
         String feature = extractFeature(toolName, resultContent);
         float baseWeight = featureWeights.getOrDefault(feature, DEFAULT_WEIGHT);
 
-        // 上下文感知：如果当前任务与特征相关，临时提升权重
+        // Temporarily boost features relevant to the current task.
         if (!currentTaskContext.isEmpty()) {
             String lowerFeature = feature.toLowerCase();
-            // 任务关键词匹配
+            // Match task keywords.
             if (isTaskRelevant(lowerFeature)) {
-                // 临时提升20%权重
+                // Temporarily boost weight by 20%.
                 return Math.min(MAX_WEIGHT, baseWeight * 1.2f);
             }
         }
@@ -135,13 +111,11 @@ public class ImportanceEvaluator {
         return baseWeight;
     }
 
-    /**
-     * 判断特征是否与当前任务相关
-     */
+    /** Determine whether a feature is relevant to the current task. */
     private boolean isTaskRelevant(String feature) {
         if (currentTaskContext.isEmpty()) return false;
 
-        // 提取任务关键词
+        // Extract task keywords.
         String[] taskKeywords = currentTaskContext.split("\\s+");
         for (String keyword : taskKeywords) {
             if (keyword.length() >= 3 && feature.contains(keyword)) {
@@ -149,20 +123,20 @@ public class ImportanceEvaluator {
             }
         }
 
-        // 常见任务类型匹配
-        if (currentTaskContext.contains("挖") || currentTaskContext.contains("mine") ||
-            currentTaskContext.contains("采矿")) {
+        // Match common task types.
+        if (currentTaskContext.contains("\u6316") || currentTaskContext.contains("mine") ||
+            currentTaskContext.contains("\u91c7\u77ff")) {
             return feature.contains("ore") || feature.contains("block") ||
                    feature.contains("stone") || feature.contains("diamond") ||
                    feature.contains("iron") || feature.contains("coal");
         }
-        if (currentTaskContext.contains("建") || currentTaskContext.contains("build") ||
-            currentTaskContext.contains("放置")) {
+        if (currentTaskContext.contains("\u5efa") || currentTaskContext.contains("build") ||
+            currentTaskContext.contains("\u653e\u7f6e")) {
             return feature.contains("block") || feature.contains("place") ||
                    feature.contains("build") || feature.contains("craft");
         }
-        if (currentTaskContext.contains("战斗") || currentTaskContext.contains("fight") ||
-            currentTaskContext.contains("攻击")) {
+        if (currentTaskContext.contains("\u6218\u6597") || currentTaskContext.contains("fight") ||
+            currentTaskContext.contains("\u653b\u51fb")) {
             return feature.contains("entity") || feature.contains("mob") ||
                    feature.contains("damage") || feature.contains("health");
         }
@@ -170,61 +144,50 @@ public class ImportanceEvaluator {
         return false;
     }
 
-    /**
-     * 判断某工具结果是否"重要"（权重超过阈值）。
-     */
+    /** A tool result is important when its weight exceeds the threshold. */
     public boolean isImportant(String toolName, String resultContent) {
         return getWeight(toolName, resultContent) >= IMPORTANT_THRESHOLD;
     }
 
-    /**
-     * 通过 LLM 标注学习。
-     * LLM 在工具结果中可包含 "importance": "high"/"medium"/"low" 字段。
-     */
+    /** Learn from LLM result annotations: importance may be high, medium or low. */
     public void learnFromLLMAnnotation(String toolName, String resultContent, String importanceLabel) {
         if (importanceLabel == null) return;
         String feature = extractFeature(toolName, resultContent);
         float target;
         switch (importanceLabel.toLowerCase()) {
-            case "high", "重要", "critical" -> target = 0.9f;
-            case "medium", "中等", "normal" -> target = 0.5f;
-            case "low", "低", "trivial" -> target = 0.2f;
+            case "high", "\u91cd\u8981", "critical" -> target = 0.9f;
+            case "medium", "\u4e2d\u7b49", "normal" -> target = 0.5f;
+            case "low", "\u4f4e", "trivial" -> target = 0.2f;
             default -> { return; }
         }
         float current = featureWeights.getOrDefault(feature, DEFAULT_WEIGHT);
-        // 向目标值靠拢（学习率0.3）
+        // Move toward the target with a learning rate of 0.3.
         float updated = current + (target - current) * 0.3f;
         featureWeights.put(feature, clamp(updated));
         learnCount.incrementAndGet();
     }
 
-    /**
-     * 通过情绪强度反推学习。
-     * 如果某事件触发了强情绪变化，提升其特征权重。
-     */
+    /** Increase feature weights when events trigger strong emotion changes. */
     public void learnFromEmotion(String toolName, String resultContent, float emotionDelta) {
-        // 阈值说明：EmotionState 的单次情绪调整幅度最大约 0.09
-        // （onTaskFailed/onTaskComplete 等单步变化），加上负向 1.5x
-        // 放大后最多约 0.135。原先的 0.2f 阈值永远无法达到，会让
-        // 整个情绪学习渠道变成死代码。降到 0.05f 与 AgentLoop 中
-        // 触发学习的阈值（emotionDelta > 0.05f）保持一致。
-        if (Math.abs(emotionDelta) < 0.05f) return;  // 情绪变化太小不学
+        // EmotionState changes by at most about 0.09 per event.
+        // Negative changes receive a 1.5x multiplier,
+        // so the maximum is about 0.135. The previous 0.2 threshold was unreachable,
+        // making emotion learning dead code. Use 0.05 to match AgentLoop's
+        // learning trigger (emotionDelta > 0.05f).
+        if (Math.abs(emotionDelta) < 0.05f) return;  // Ignore emotion changes that are too small.
         String feature = extractFeature(toolName, resultContent);
         float current = featureWeights.getOrDefault(feature, DEFAULT_WEIGHT);
-        // 情绪强度越大，权重提升越多
-        // 注意：单次情绪幅度小（0.05~0.13），直接用作为 boost 会太小，
-        // 所以放大 3 倍让学习更明显，但仍受 MAX_WEIGHT 上限约束。
+        // Stronger emotion changes produce larger weight increases.
+        // A single emotion change is small (0.05-0.13); using it directly would underweight learning.
+        // Multiply by three for a clearer effect, still bounded by MAX_WEIGHT.
         float boost = Math.abs(emotionDelta) * 3.0f * LEARN_STEP;
-        // 负面情绪（被攻击等）提升更多——生存相关更重要
+        // Give negative emotions, such as being attacked, extra weight for survival relevance.
         if (emotionDelta < 0) boost *= 1.5f;
         featureWeights.put(feature, clamp(current + boost));
         learnCount.incrementAndGet();
     }
 
-    /**
-     * 通过失败关联学习。
-     * 导致任务失败的工具结果自动标记重要。
-     */
+    /** Learn from failures by marking contributing tool-result features important. */
     public void learnFromFailure(String toolName, String resultContent) {
         String feature = extractFeature(toolName, resultContent);
         float current = featureWeights.getOrDefault(feature, DEFAULT_WEIGHT);
@@ -233,12 +196,13 @@ public class ImportanceEvaluator {
     }
 
     /**
-     * 定期衰减所有权重（向 0.5 中性靠拢）。
-     * 防止某些特征权重永远卡在 1.0。
-     * 建议：每 200 tick 调用一次。
-     *
-     * 注意：衰减率已从0.01降至0.002，学到的权重约5秒才衰减0.01，
-     * 使学习成果能保持更久。
+
+     * Periodically decay weights toward neutral 0.5 so features do not remain at 1.0 forever.
+
+     * Recommended cadence: every 200 ticks. Lowering the step from 0.01 to 0.002 preserves
+
+     * learning longer; a 0.01 decrease takes about five seconds under the intended cadence.
+
      */
     public void decayAll() {
         if (featureWeights.isEmpty()) return;
@@ -250,12 +214,15 @@ public class ImportanceEvaluator {
     }
 
     /**
-     * 获取供 system prompt 使用的简要描述。
-     * 只列出权重最高的前5个特征，让 LLM 知道 AI "认为"什么重要。
+
+     * Summarize the five highest-weight features for the system prompt so the LLM sees what the
+
+     * AI considers important.
+
      */
     public String summarizeForPrompt() {
         if (featureWeights.isEmpty() || learnCount.get() < 3) {
-            return "";  // 学习数据不足时不注入
+            return "";  // Do not inject a summary before enough learning data exists.
         }
         StringBuilder sb = new StringBuilder();
         featureWeights.entrySet().stream()
@@ -264,7 +231,7 @@ public class ImportanceEvaluator {
                 .limit(5)
                 .forEach(e -> {
                     if (sb.length() > 0) sb.append(", ");
-                    // 提取特征的主题部分（去掉工具名前缀）
+                    // Strip the tool-name prefix to render the feature subject.
                     String feature = e.getKey();
                     int colonIdx = feature.indexOf(':');
                     if (colonIdx >= 0 && colonIdx < feature.length() - 1) {
@@ -274,24 +241,20 @@ public class ImportanceEvaluator {
                     }
                 });
         if (sb.length() == 0) return "";
-        return "你认为重要的: " + sb;
+        return "What you consider important: " + sb;
     }
 
     public int learnCount() { return learnCount.get(); }
     public int featureCount() { return featureWeights.size(); }
 
-    // ─── 持久化支持 ───
+    // Persistence support.
 
-    /**
-     * 导出学习到的特征权重（用于持久化保存）。
-     */
+    /** Export learned feature weights for persistence. */
     public Map<String, Float> exportWeights() {
         return new ConcurrentHashMap<>(featureWeights);
     }
 
-    /**
-     * 导入特征权重（用于持久化恢复），替换当前所有数据。
-     */
+    /** Import persisted feature weights, replacing current data. */
     public void importWeights(Map<String, Float> weights, int savedLearnCount) {
         featureWeights.clear();
         if (weights != null) {

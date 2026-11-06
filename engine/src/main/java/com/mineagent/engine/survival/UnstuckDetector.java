@@ -5,7 +5,7 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Rolling-window stuck detector — borrowed from numen project, refined
- * for MineAgent.
+ * for CraftDroid.
  *
  * <p><b>Problem solved</b>: The old {@link UnstuckChain} used a simple
  * {@code samePosTicks} counter that incremented every tick the companion

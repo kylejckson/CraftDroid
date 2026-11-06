@@ -74,7 +74,7 @@ public class FakeConnection extends Connection {
                 }
             }
         }
-        System.err.println("[MineAgent] Could not set Connection.channel — "
+        System.err.println("[CraftDroid] Could not set Connection.channel — "
                 + "server tick may crash with NPE");
     }
 

@@ -54,7 +54,7 @@ public final class PlaceManeuver {
             // Fallback to dirt
             return placeBlockBelow(player, Blocks.DIRT);
         } catch (Exception e) {
-            System.err.println("[MineAgent] PlaceManeuver.placeScaffoldBelow error: " + e.getMessage());
+            System.err.println("[CraftDroid] PlaceManeuver.placeScaffoldBelow error: " + e.getMessage());
             return false;
         }
     }
@@ -76,7 +76,7 @@ public final class PlaceManeuver {
 
             return Placement.placeBlock(player, below, state);
         } catch (Exception e) {
-            System.err.println("[MineAgent] PlaceManeuver.placeBlockBelow error: " + e.getMessage());
+            System.err.println("[CraftDroid] PlaceManeuver.placeBlockBelow error: " + e.getMessage());
             return false;
         }
     }
@@ -99,7 +99,7 @@ public final class PlaceManeuver {
 
             return Placement.placeBlock(player, above, state);
         } catch (Exception e) {
-            System.err.println("[MineAgent] PlaceManeuver.placeBlockAbove error: " + e.getMessage());
+            System.err.println("[CraftDroid] PlaceManeuver.placeBlockAbove error: " + e.getMessage());
             return false;
         }
     }
@@ -152,7 +152,7 @@ public final class PlaceManeuver {
 
             return placed;
         } catch (Exception e) {
-            System.err.println("[MineAgent] PlaceManeuver.towerUp error: " + e.getMessage());
+            System.err.println("[CraftDroid] PlaceManeuver.towerUp error: " + e.getMessage());
             return false;
         }
     }
@@ -226,7 +226,7 @@ public final class PlaceManeuver {
 
             return placed;
         } catch (Exception e) {
-            System.err.println("[MineAgent] PlaceManeuver.bridgeForward error: " + e.getMessage());
+            System.err.println("[CraftDroid] PlaceManeuver.bridgeForward error: " + e.getMessage());
             return false;
         }
     }

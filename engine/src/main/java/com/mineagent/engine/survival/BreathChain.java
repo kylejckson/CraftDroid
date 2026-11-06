@@ -68,7 +68,7 @@ public final class BreathChain implements TaskChain {
                     && sp.getAirSupply() < AIR_THRESHOLD
                     ? PRIORITY : Float.NEGATIVE_INFINITY;
         } catch (Exception error) {
-            System.err.println("[MineAgent] Breath priority error: " + error.getMessage());
+            System.err.println("[CraftDroid] Breath priority error: " + error.getMessage());
             return Float.NEGATIVE_INFINITY;
         }
     }
@@ -131,7 +131,7 @@ public final class BreathChain implements TaskChain {
                 }
             }
         } catch (Exception error) {
-            System.err.println("[MineAgent] Breath tick error: " + error.getMessage());
+            System.err.println("[CraftDroid] Breath tick error: " + error.getMessage());
             // A transient targeting error must not release a drowning body.
             abortRoofBreak(sp);
             phase = Phase.SWIMMING;

@@ -7,7 +7,7 @@ import org.lwjgl.glfw.GLFW;
 import java.util.List;
 
 /**
- * Loader-neutral definitions for every MineAgent key mapping.
+ * Loader-neutral definitions for every CraftDroid key mapping.
  *
  * <p>Fabric and NeoForge must register the same {@link KeyMapping} instances
  * with their own event APIs. Keeping only the registration call in each

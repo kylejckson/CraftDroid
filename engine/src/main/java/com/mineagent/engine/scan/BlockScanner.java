@@ -123,7 +123,7 @@ public final class BlockScanner {
                 cache.invalidate();
             }
         } catch (Exception e) {
-            System.err.println("[MineAgent] BlockScanner.scanByType error: " + e.getMessage());
+            System.err.println("[CraftDroid] BlockScanner.scanByType error: " + e.getMessage());
         }
 
         return results;
@@ -198,7 +198,7 @@ public final class BlockScanner {
                 }
             }
         } catch (Exception e) {
-            System.err.println("[MineAgent] BlockScanner.scanByTag error: " + e.getMessage());
+            System.err.println("[CraftDroid] BlockScanner.scanByTag error: " + e.getMessage());
         }
 
         return results;
@@ -268,7 +268,7 @@ public final class BlockScanner {
                 }
             }
         } catch (Exception e) {
-            System.err.println("[MineAgent] BlockScanner.scanOres error: " + e.getMessage());
+            System.err.println("[CraftDroid] BlockScanner.scanOres error: " + e.getMessage());
         }
 
         return results;
@@ -363,7 +363,7 @@ public final class BlockScanner {
 
             return new BlockScanResult(mergedVeins, water, lava, danger);
         } catch (Exception e) {
-            System.err.println("[MineAgent] BlockScanner.scanArea error: " + e.getMessage());
+            System.err.println("[CraftDroid] BlockScanner.scanArea error: " + e.getMessage());
             return new BlockScanResult(List.of(), List.of(), List.of(), List.of());
         }
     }
@@ -426,7 +426,7 @@ public final class BlockScanner {
 
             return new NearbyBlocksResult(pos, solidBlocks, fluidBlocks, specialBlocks);
         } catch (Exception e) {
-            System.err.println("[MineAgent] BlockScanner.getNearbyBlocks error: " + e.getMessage());
+            System.err.println("[CraftDroid] BlockScanner.getNearbyBlocks error: " + e.getMessage());
             return new NearbyBlocksResult(pos, List.of(), List.of(), List.of());
         }
     }

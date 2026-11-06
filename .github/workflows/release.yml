@@ -40,7 +40,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: mineagent-release-test-evidence
+          name: craftdroid-release-test-evidence
           path: |
             fabric/build/gametest-results.xml
             fabric/build/test-results/test/*.xml
@@ -52,13 +52,13 @@ jobs:
           set -euo pipefail
           VERSION="${GITHUB_REF_NAME#v}"
           mkdir -p build/release
-          cp "fabric/build/libs/mineagent-fabric-$VERSION.jar" build/release/
-          cp "neoforge/build/libs/mineagent-neoforge-$VERSION.jar" build/release/
+          cp "fabric/build/libs/craftdroid-fabric-$VERSION.jar" build/release/
+          cp "neoforge/build/libs/craftdroid-neoforge-$VERSION.jar" build/release/
           cp build/release-artifacts.sha256 build/release/
-          git archive --format=zip --prefix="MineAgent-$VERSION/" \
-            --output="build/release/mineagent-source-$VERSION.zip" "$GITHUB_SHA"
-          git archive --format=tar --prefix="MineAgent-$VERSION/" "$GITHUB_SHA" \
-            | gzip -n > "build/release/mineagent-source-$VERSION.tar.gz"
+          git archive --format=zip --prefix="CraftDroid-$VERSION/" \
+            --output="build/release/craftdroid-source-$VERSION.zip" "$GITHUB_SHA"
+          git archive --format=tar --prefix="CraftDroid-$VERSION/" "$GITHUB_SHA" \
+            | gzip -n > "build/release/craftdroid-source-$VERSION.tar.gz"
           {
             printf '\n## Build provenance\n\n'
             printf 'Source commit: `%s`\n\n' "$GITHUB_SHA"
@@ -68,7 +68,7 @@ jobs:
           cp build/release-notes.md build/release/
           (
             cd build/release
-            sha256sum "mineagent-source-$VERSION.zip" "mineagent-source-$VERSION.tar.gz" \
+            sha256sum "craftdroid-source-$VERSION.zip" "craftdroid-source-$VERSION.tar.gz" \
               release-notes.md >> release-artifacts.sha256
             sha256sum --check release-artifacts.sha256
           )
@@ -76,7 +76,7 @@ jobs:
       - name: Preserve checked release bundle
         uses: actions/upload-artifact@v4
         with:
-          name: mineagent-${{ github.ref_name }}-release-bundle
+          name: craftdroid-${{ github.ref_name }}-release-bundle
           path: build/release/
           if-no-files-found: error
 
@@ -92,7 +92,7 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             build/release/* \
             --repo "$GITHUB_REPOSITORY" \
-            --title "MineAgent $GITHUB_REF_NAME" \
+            --title "CraftDroid $GITHUB_REF_NAME" \
             --notes-file build/release/release-notes.md \
             --verify-tag \
             "${RELEASE_FLAGS[@]}"

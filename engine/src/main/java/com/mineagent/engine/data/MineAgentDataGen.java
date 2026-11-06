@@ -6,7 +6,7 @@ import net.minecraft.data.PackOutput;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Data generator entry point for MineAgent.
+ * Data generator entry point for CraftDroid.
  * <p>
  * Creates all data-driven assets (block tags, item tags, etc.)
  * used by the pathfinding and survival systems.

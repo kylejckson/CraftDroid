@@ -194,7 +194,7 @@ public final class UnstuckChain implements TaskChain {
                 return PRIORITY;
             }
         } catch (Exception e) {
-            System.err.println("[MineAgent] Unstuck getPriority error: " + e.getMessage());
+            System.err.println("[CraftDroid] Unstuck getPriority error: " + e.getMessage());
         }
         return Float.NEGATIVE_INFINITY;
     }
@@ -374,7 +374,7 @@ public final class UnstuckChain implements TaskChain {
                 }
             }
         } catch (Exception e) {
-            System.err.println("[MineAgent] Unstuck tick error: " + e.getMessage());
+            System.err.println("[CraftDroid] Unstuck tick error: " + e.getMessage());
             reset();
         }
     }

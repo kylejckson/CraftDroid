@@ -35,7 +35,7 @@ import com.mineagent.tools.skill.LoadSkillTool;
 import com.mineagent.tools.skill.ExecuteSkillTool;
 
 /**
- * Registers all MineAgent built-in tools. Called at mod initialization.
+ * Registers all CraftDroid built-in tools. Called at mod initialization.
  */
 public final class ToolRegistration {
 
@@ -110,6 +110,6 @@ public final class ToolRegistration {
         ToolRegistry.register(new LearnedSkillsTool());
         ToolRegistry.register(new ExecuteSkillTool());
 
-        System.out.println("[MineAgent] Registered " + ToolRegistry.size() + " tools");
+        System.out.println("[CraftDroid] Registered " + ToolRegistry.size() + " tools");
     }
 }

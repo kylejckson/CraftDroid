@@ -573,7 +573,7 @@ public class OpenAICompatibleProvider implements LLMProvider {
             // Content handling per role:
             //   - tool messages: content MUST be present (some APIs reject null)
             //   - assistant with tool_calls: OpenAI spec allows null content,
-            //     BUT many relay/proxy sites (OpenRouter, 国内中转站) require a
+            // BUT many relay/proxy sites (OpenRouter, regional relays) require a
             //     string. Set to "" for maximum compatibility across all
             //     OpenAI-compatible providers (DeepSeek/Qwen/GLM/Kimi/Grok/MiniMax).
             //   - assistant without tool_calls: must have content
@@ -804,7 +804,7 @@ public class OpenAICompatibleProvider implements LLMProvider {
                 } catch (Exception tcEx) {
                     // Skip a single malformed tool_call rather than failing
                     // the entire response. Log so it's debuggable.
-                    System.err.println("[MineAgent] Skipping malformed tool_call: "
+                    System.err.println("[CraftDroid] Skipping malformed tool_call: "
                             + tcEx.getMessage());
                 }
             }
@@ -877,21 +877,21 @@ public class OpenAICompatibleProvider implements LLMProvider {
         return new OpenAICompatibleProvider("openai", "OpenAI",
                 "https://api.openai.com",
                 List.of(
-                        // GPT-5.6 系列 (2026年7月9日发布，旗舰家族)
+                        // GPT-5.6 family (released July 9, 2026; flagship family).
                         "gpt-5.6-sol", "gpt-5.6-sol-pro",
                         "gpt-5.6-terra", "gpt-5.6-terra-pro",
                         "gpt-5.6-luna", "gpt-5.6-luna-pro",
-                        // GPT-5.5 系列
+                        // GPT-5.5 family.
                         "gpt-5.5", "gpt-5.5-instant", "gpt-5.5-instant-mini",
-                        // GPT-5.4 系列
+                        // GPT-5.4 family.
                         "gpt-5.4", "gpt-5.4-mini",
-                        // GPT-5 系列
+                        // GPT-5 family.
                         "gpt-5", "gpt-5-instant",
-                        // GPT-4.1 系列
+                        // GPT-4.1 family.
                         "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano",
-                        // GPT-4o 系列
+                        // GPT-4o family.
                         "gpt-4o", "gpt-4o-mini",
-                        // o-series 推理模型
+                        // o-series reasoning models.
                         "o3", "o3-mini", "o3-pro",
                         "o4-mini"
                 ),
@@ -902,9 +902,9 @@ public class OpenAICompatibleProvider implements LLMProvider {
         return new OpenAICompatibleProvider("deepseek", "DeepSeek",
                 "https://api.deepseek.com",
                 List.of(
-                        // V4 系列 (V4-Flash正式版2026年7月31日上线，Agent能力大幅增强)
+                        // V4 family (V4-Flash released July 31, 2026; substantially improved agent capabilities).
                         "deepseek-v4-pro", "deepseek-v4-flash",
-                        // V3.2 系列 (即将下线，2026-10-10)
+                        // V3.2 family (scheduled retirement: October 10, 2026).
                         "deepseek-chat", "deepseek-reasoner",
                         "deepseek-v3", "deepseek-v3.2"
                 ),
@@ -915,21 +915,21 @@ public class OpenAICompatibleProvider implements LLMProvider {
         return new OpenAICompatibleProvider("qwen", "Qwen (Alibaba)",
                 "https://dashscope.aliyuncs.com/compatible-mode",
                 List.of(
-                        // Qwen3.8 系列 (2026年7月19日发布，2.4T参数，1M上下文)
+                        // Qwen3.8 family (released July 19, 2026; 2.4T parameters, 1M context).
                         "qwen3.8-max",
-                        // Qwen3.7 系列 (2026年5月，Agent旗舰)
+                        // Qwen3.7 family (May 2026; agent flagship).
                         "qwen3.7-max", "qwen3.7-plus",
-                        // Qwen3.6 系列
+                        // Qwen3.6 family.
                         "qwen3.6-plus", "qwen3.6-flash", "qwen3.6-27b",
                         "qwen3.6-35b-a3b",
-                        // Qwen3.5 系列
+                        // Qwen3.5 family.
                         "qwen3.5-plus", "qwen3.5-flash",
                         "qwen3.5-122b-a10b", "qwen3.5-27b",
-                        // Qwen3 系列
+                        // Qwen3 family.
                         "qwen3-235b-a22b", "qwen3-30b-a3b",
-                        // Qwen2.5 系列
+                        // Qwen2.5 family.
                         "qwen-max", "qwen-plus", "qwen-turbo", "qwen-long",
-                        // QwQ 推理系列
+                        // QwQ reasoning family.
                         "qwq-plus", "qwq-32b"
                 ),
                 Set.of("qwen", "qwq-"));
@@ -939,15 +939,15 @@ public class OpenAICompatibleProvider implements LLMProvider {
         return new OpenAICompatibleProvider("glm", "GLM (Zhipu)",
                 "https://open.bigmodel.cn/api/paas",
                 List.of(
-                        // GLM-5 系列 (2026年最新旗舰)
+                        // GLM-5 family (2026 flagship).
                         "glm-5.2", "glm-5.1", "glm-5", "glm-5-turbo",
-                        // GLM-4.7 系列
+                        // GLM-4.7 family.
                         "glm-4.7", "glm-4.7-flash", "glm-4.7-flashx",
-                        // GLM-4.6 系列
+                        // GLM-4.6 family.
                         "glm-4.6",
-                        // GLM-4.5 系列
+                        // GLM-4.5 family.
                         "glm-4.5-air", "glm-4.5-airx", "glm-4.5-flash",
-                        // GLM-4 系列
+                        // GLM-4 family.
                         "glm-4-plus", "glm-4-flash", "glm-4-long",
                         "glm-4-air"
                 ),
@@ -958,17 +958,17 @@ public class OpenAICompatibleProvider implements LLMProvider {
         return new OpenAICompatibleProvider("moonshot", "Moonshot (Kimi)",
                 "https://api.moonshot.cn",
                 List.of(
-                        // Kimi K3 系列 (2026年7月最新，2.8T参数，100万上下文)
+                        // Kimi K3 family (July 2026; 2.8T parameters, 1M context).
                         "kimi-k3",
-                        // Kimi K2.7 系列
+                        // Kimi K2.7 family.
                         "kimi-k2.7-code", "kimi-k2.7-code-highspeed",
-                        // Kimi K2.6 系列
+                        // Kimi K2.6 family.
                         "kimi-k2.6",
-                        // Kimi K2.5 系列
+                        // Kimi K2.5 family.
                         "kimi-k2.5",
-                        // Kimi K2 Thinking 系列
+                        // Kimi K2 Thinking family.
                         "kimi-k2-thinking", "kimi-k2-thinking-turbo",
-                        // Moonshot V1 系列 (即将下线 2026-08-31)
+                        // Moonshot V1 family (scheduled retirement: August 31, 2026).
                         "moonshot-v1-8k", "moonshot-v1-32k",
                         "moonshot-v1-128k", "moonshot-v1-auto"
                 ),
@@ -979,19 +979,19 @@ public class OpenAICompatibleProvider implements LLMProvider {
         return new OpenAICompatibleProvider("grok", "Grok (xAI)",
                 "https://api.x.ai",
                 List.of(
-                        // Grok 4.5 (2026年7月8日发布，1.5T参数，500K上下文)
+                        // Grok 4.5 (released July 8, 2026; 1.5T parameters, 500K context).
                         "grok-4.5",
-                        // Grok 4.3 (1M上下文)
+                        // Grok 4.3 (1M context).
                         "grok-4.3",
-                        // Grok 4.20 系列 (2M上下文)
+                        // Grok 4.20 family (2M context).
                         "grok-4.20", "grok-4.20-reasoning",
-                        // Grok 4.1 系列
+                        // Grok 4.1 family.
                         "grok-4.1", "grok-4.1-fast",
-                        // Grok 4 系列
+                        // Grok 4 family.
                         "grok-4", "grok-4-fast",
-                        // Grok Build 编程系列
+                        // Grok Build coding family.
                         "grok-build-0.1",
-                        // Grok 3 系列
+                        // Grok 3 family.
                         "grok-3", "grok-3-mini", "grok-3-fast"
                 ),
                 Set.of("grok-"));
@@ -1001,17 +1001,17 @@ public class OpenAICompatibleProvider implements LLMProvider {
         return new OpenAICompatibleProvider("minimax", "MiniMax",
                 "https://api.minimaxi.com",
                 List.of(
-                        // MiniMax-M3 (2026年6月最新，1M上下文，原生多模态)
+                        // MiniMax-M3 (June 2026; 1M context, native multimodality).
                         "MiniMax-M3",
-                        // MiniMax-M2.7 系列
+                        // MiniMax-M2.7 family.
                         "MiniMax-M2.7", "MiniMax-M2.7-highspeed",
-                        // MiniMax-M2.5 系列
+                        // MiniMax-M2.5 family.
                         "MiniMax-M2.5", "MiniMax-M2.5-highspeed",
-                        // MiniMax-M2.1 系列
+                        // MiniMax-M2.1 family.
                         "MiniMax-M2.1", "MiniMax-M2.1-highspeed",
-                        // MiniMax-M2 系列
+                        // MiniMax-M2 family.
                         "MiniMax-M2",
-                        // MiniMax 对话角色模型
+                        // MiniMax conversational character models.
                         "M2-her"
                 ),
                 Set.of("MiniMax-", "M2-"));

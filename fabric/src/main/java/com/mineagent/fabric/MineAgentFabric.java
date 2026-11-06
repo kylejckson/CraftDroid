@@ -20,7 +20,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
  * On initialization, this class:
  * <ol>
  *   <li>Registers the Fabric platform implementation</li>
- *   <li>Initializes the MineAgent engine</li>
+ *   <li>Initializes the CraftDroid engine</li>
  *   <li>Registers built-in tools</li>
  *   <li>Registers event handlers (server tick, player chat, lifecycle)</li>
  *   <li>Registers commands (/mineagent spawn, /mineagent remove)</li>
@@ -195,6 +195,6 @@ public class MineAgentFabric implements ModInitializer {
             }
         });
 
-        System.out.println("[MineAgent] Fabric module initialized");
+        System.out.println("[CraftDroid] Fabric module initialized");
     }
 }

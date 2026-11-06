@@ -58,7 +58,7 @@ public final class ClientPacketHandler {
             try {
                 listener.onTaskResult(payload);
             } catch (Exception e) {
-                System.err.println("[MineAgent] TaskResultListener error: "
+                System.err.println("[CraftDroid] TaskResultListener error: "
                         + e.getMessage());
             }
         }
@@ -66,7 +66,7 @@ public final class ClientPacketHandler {
         // Display a chat message if the player is nearby
         if (client.player != null) {
             String status = payload.success() ? "§a✓" : "§c✗";
-            String message = String.format("§7[MineAgent] %s %s: %s",
+            String message = String.format("§7[CraftDroid] %s %s: %s",
                     status, payload.toolCallId(), payload.message());
             client.player.displayClientMessage(
                     net.minecraft.network.chat.Component.literal(message), false);
@@ -125,7 +125,7 @@ public final class ClientPacketHandler {
             try {
                 listener.onPathDebug(payload);
             } catch (Exception e) {
-                System.err.println("[MineAgent] PathDebugListener error: "
+                System.err.println("[CraftDroid] PathDebugListener error: "
                         + e.getMessage());
             }
         }

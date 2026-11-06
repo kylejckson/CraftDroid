@@ -90,7 +90,7 @@ public final class Ballistics {
 
             return new Vec3(x, y, z);
         } catch (Exception e) {
-            System.err.println("[MineAgent] Ballistics.predictPosition error: " + e.getMessage());
+            System.err.println("[CraftDroid] Ballistics.predictPosition error: " + e.getMessage());
             return target != null ? target.position() : Vec3.ZERO;
         }
     }
@@ -141,7 +141,7 @@ public final class Ballistics {
             // Use the lower angle for a flatter trajectory (more reliable)
             return Math.min(angle1, angle2);
         } catch (Exception e) {
-            System.err.println("[MineAgent] Ballistics.calculateLaunchAngle error: " + e.getMessage());
+            System.err.println("[CraftDroid] Ballistics.calculateLaunchAngle error: " + e.getMessage());
             return Math.PI / 4;
         }
     }
@@ -190,7 +190,7 @@ public final class Ballistics {
             // Use the item (throw it)
             return Interaction.useItem(player, net.minecraft.world.InteractionHand.MAIN_HAND);
         } catch (Exception e) {
-            System.err.println("[MineAgent] Ballistics.throwProjectile error: " + e.getMessage());
+            System.err.println("[CraftDroid] Ballistics.throwProjectile error: " + e.getMessage());
             return false;
         }
     }
@@ -259,7 +259,7 @@ public final class Ballistics {
             // Use the bow/crossbow
             return Interaction.useItem(player, net.minecraft.world.InteractionHand.MAIN_HAND);
         } catch (Exception e) {
-            System.err.println("[MineAgent] Ballistics.shootArrow error: " + e.getMessage());
+            System.err.println("[CraftDroid] Ballistics.shootArrow error: " + e.getMessage());
             return false;
         }
     }
@@ -292,7 +292,7 @@ public final class Ballistics {
             // Default throw velocity
             return 1.5f;
         } catch (Exception e) {
-            System.err.println("[MineAgent] Ballistics.getProjectileVelocity error: " + e.getMessage());
+            System.err.println("[CraftDroid] Ballistics.getProjectileVelocity error: " + e.getMessage());
             return 1.5f;
         }
     }
@@ -348,7 +348,7 @@ public final class Ballistics {
 
             return new Vec3(vx, vy, vz);
         } catch (Exception e) {
-            System.err.println("[MineAgent] Ballistics.getThrowVelocity error: " + e.getMessage());
+            System.err.println("[CraftDroid] Ballistics.getThrowVelocity error: " + e.getMessage());
             return new Vec3(0, power, 0);
         }
     }

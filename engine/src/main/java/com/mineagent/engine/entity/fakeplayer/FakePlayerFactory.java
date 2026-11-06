@@ -96,7 +96,7 @@ public final class FakePlayerFactory {
         player.gameMode = gameMode;
 
         // A null/omitted mode is explicitly survival. Hardcore is represented
-        // by MineAgent as SURVIVAL plus an independent permanent-death policy.
+        // by CraftDroid as SURVIVAL plus an independent permanent-death policy.
         GameType gameType = requestedGameType == null
                 ? GameType.SURVIVAL : requestedGameType;
         player.setGameMode(gameType);
@@ -154,7 +154,7 @@ public final class FakePlayerFactory {
                         net.minecraft.world.entity.Entity.RemovalReason.DISCARDED);
             }
         } catch (RuntimeException cleanupError) {
-            System.err.println("[MineAgent] Failed to roll back fake entity: "
+            System.err.println("[CraftDroid] Failed to roll back fake entity: "
                     + cleanupError.getMessage());
         }
         mutablePlayerList(server.getPlayerList()).remove(player);
@@ -228,7 +228,7 @@ public final class FakePlayerFactory {
                 if (player.isRemoved() || !player.connection.isAcceptingMessages()) return;
 
                 if (skinOpt.isEmpty()) {
-                    System.out.println("[MineAgent] No skin found for '" + skinName
+                    System.out.println("[CraftDroid] No skin found for '" + skinName
                             + "', keeping default Steve/Alex");
                     done.run();
                     return;
@@ -243,7 +243,7 @@ public final class FakePlayerFactory {
                 // Refresh skin for all online viewers
                 refreshPlayerInfo(player);
 
-                System.out.println("[MineAgent] Skin applied to '" + player.getName().getString()
+                System.out.println("[CraftDroid] Skin applied to '" + player.getName().getString()
                         + "' from player '" + skinName + "'");
                 done.run();
             });
@@ -322,7 +322,7 @@ public final class FakePlayerFactory {
             throw new IllegalStateException("could not add fake-player entity for '"
                     + player.getName().getString() + "'");
         } else {
-            System.out.println("[MineAgent] Fake player entity added to level at ("
+            System.out.println("[CraftDroid] Fake player entity added to level at ("
                     + player.getX() + ", " + player.getY() + ", " + player.getZ() + ")");
         }
 
@@ -331,7 +331,7 @@ public final class FakePlayerFactory {
         // undid every non-survival mode selected during construction.
         player.setGameMode(gameType == null ? GameType.SURVIVAL : gameType);
 
-        System.out.println("[MineAgent] Fake player '" + player.getName().getString()
+        System.out.println("[CraftDroid] Fake player '" + player.getName().getString()
                 + "' registered with server (UUID: " + player.getUUID() + ")");
     }
 
@@ -367,7 +367,7 @@ public final class FakePlayerFactory {
 
         SkinLoader.evictCachedSkin(player.getUUID());
 
-        System.out.println("[MineAgent] Fake player '" + player.getName().getString()
+        System.out.println("[CraftDroid] Fake player '" + player.getName().getString()
                 + "' unregistered from server");
     }
 
@@ -485,7 +485,7 @@ public final class FakePlayerFactory {
             // in with the same UUID after a partially failed teardown.
             index.remove(player.getUUID(), player);
         } catch (RuntimeException cleanupError) {
-            System.err.println("[MineAgent] Failed to remove fake-player UUID index: "
+            System.err.println("[CraftDroid] Failed to remove fake-player UUID index: "
                     + cleanupError.getMessage());
         }
     }

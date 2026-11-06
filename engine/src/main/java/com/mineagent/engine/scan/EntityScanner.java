@@ -63,7 +63,7 @@ public final class EntityScanner {
                 if (results.size() >= MAX_RESULTS) break;
             }
         } catch (Exception e) {
-            System.err.println("[MineAgent] EntityScanner.scanHostile error: " + e.getMessage());
+            System.err.println("[CraftDroid] EntityScanner.scanHostile error: " + e.getMessage());
         }
 
         return results;
@@ -108,7 +108,7 @@ public final class EntityScanner {
                 }
             }
         } catch (Exception e) {
-            System.err.println("[MineAgent] EntityScanner.scanFriendly error: " + e.getMessage());
+            System.err.println("[CraftDroid] EntityScanner.scanFriendly error: " + e.getMessage());
         }
 
         return results;
@@ -145,7 +145,7 @@ public final class EntityScanner {
                 if (results.size() >= MAX_RESULTS) break;
             }
         } catch (Exception e) {
-            System.err.println("[MineAgent] EntityScanner.scanItems error: " + e.getMessage());
+            System.err.println("[CraftDroid] EntityScanner.scanItems error: " + e.getMessage());
         }
 
         return results;
@@ -182,7 +182,7 @@ public final class EntityScanner {
                 if (results.size() >= MAX_RESULTS) break;
             }
         } catch (Exception e) {
-            System.err.println("[MineAgent] EntityScanner.scanAll error: " + e.getMessage());
+            System.err.println("[CraftDroid] EntityScanner.scanAll error: " + e.getMessage());
         }
 
         return results;

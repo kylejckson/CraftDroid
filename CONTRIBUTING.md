@@ -1,6 +1,6 @@
-# Contributing to MineAgent
+# Contributing to CraftDroid
 
-Thank you for helping improve MineAgent. The project accepts focused bug fixes, loader compatibility work, tests, documentation, and behavior improvements that can be reproduced and evaluated.
+Thank you for helping improve CraftDroid. The project accepts focused bug fixes, loader compatibility work, tests, documentation, and behavior improvements that can be reproduced and evaluated.
 
 ## Before opening an issue
 
@@ -10,7 +10,7 @@ Thank you for helping improve MineAgent. The project accepts focused bug fixes, 
 - Remove API keys, access tokens, player identifiers, server addresses, and private chat from logs.
 - State whether the issue occurs on supported Fabric or experimental NeoForge.
 
-Use [GitHub Security Advisories](https://github.com/bingdongni/MineAgent/security/advisories/new) instead of a public issue for vulnerabilities or secret exposure.
+Use [GitHub Security Advisories](https://github.com/kylejckson/CraftDroid/security/advisories/new) instead of a public issue for vulnerabilities or secret exposure.
 
 ## Development setup
 

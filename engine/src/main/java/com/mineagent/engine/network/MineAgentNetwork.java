@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Network channel registration and packet handling for MineAgent.
+ * Network channel registration and packet handling for CraftDroid.
  * <p>
  * Defines the protocol identifiers for all custom payload types and provides
  * serialization/deserialization helpers for the platform modules.
@@ -118,7 +118,7 @@ public final class MineAgentNetwork {
             sender.send(player, new ClientUiActionPayload(companionId, action,
                     truncateUtf16(data, MAX_UI_DATA_LENGTH)));
         } catch (Exception e) {
-            System.err.println("[MineAgent] Failed to push UI action '" + action
+            System.err.println("[CraftDroid] Failed to push UI action '" + action
                     + "': " + e.getMessage());
         }
     }
@@ -135,7 +135,7 @@ public final class MineAgentNetwork {
             sender.send(player, new TaskResultPayload(
                     payload.companionId(), id, payload.success(), message));
         } catch (Exception error) {
-            System.err.println("[MineAgent] Failed to push task result: " + error.getMessage());
+            System.err.println("[CraftDroid] Failed to push task result: " + error.getMessage());
         }
     }
 
@@ -146,7 +146,7 @@ public final class MineAgentNetwork {
         try {
             sender.send(player, payload);
         } catch (Exception error) {
-            System.err.println("[MineAgent] Failed to push path debug data: " + error.getMessage());
+            System.err.println("[CraftDroid] Failed to push path debug data: " + error.getMessage());
         }
     }
 
@@ -171,7 +171,7 @@ public final class MineAgentNetwork {
      * payload types with their mod loader's registry.
      */
     public static void registerPayloadTypes() {
-        System.out.println("[MineAgent] Network payload types ready for registration");
+        System.out.println("[CraftDroid] Network payload types ready for registration");
     }
 
     // ── TaskResultPayload serialization ────────────────────────────

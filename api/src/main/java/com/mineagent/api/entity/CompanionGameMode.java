@@ -7,7 +7,7 @@ import java.util.Optional;
  * The human-controlled game mode of one companion.
  *
  * <p>Vanilla exposes {@code HARDCORE} as a world rule rather than a
- * per-player {@code GameType}. MineAgent therefore stores it explicitly and
+ * per-player {@code GameType}. CraftDroid therefore stores it explicitly and
  * applies the survival GameType plus the companion's permanent-death rule.
  * The value is intentionally loader-neutral so the client and server share
  * exactly the same wire vocabulary.

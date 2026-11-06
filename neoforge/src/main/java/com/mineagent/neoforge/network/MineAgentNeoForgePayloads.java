@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-/** NeoForge wire records for MineAgent's platform-neutral network payloads. */
+/** NeoForge wire records for CraftDroid's platform-neutral network payloads. */
 public final class MineAgentNeoForgePayloads {
 
     private static final int MAX_ID = 128;

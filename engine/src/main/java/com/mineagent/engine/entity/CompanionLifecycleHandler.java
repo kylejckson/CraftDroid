@@ -85,9 +85,9 @@ public class CompanionLifecycleHandler implements CompanionLifecycle {
         loop.wake("companion_spawned");
 
         // Notify the owner
-        notifyOwner("§a[MineAgent] " + companion.companionName() + " has spawned!");
+        notifyOwner("§a[CraftDroid] " + companion.companionName() + " has spawned!");
 
-        System.out.println("[MineAgent] Companion '" + companion.companionName()
+        System.out.println("[CraftDroid] Companion '" + companion.companionName()
                 + "' spawned (owner: " + companion.ownerName() + ")");
     }
 
@@ -143,12 +143,12 @@ public class CompanionLifecycleHandler implements CompanionLifecycle {
                 : "I died! My health reached zero. I need to be respawned.");
 
         notifyOwner(hardcore
-                ? "§c[MineAgent] " + companion.companionName()
+                ? "§c[CraftDroid] " + companion.companionName()
                         + " died permanently in Hardcore mode. Create a new companion."
-                : "§c[MineAgent] " + companion.companionName() + " has died! "
+                : "§c[CraftDroid] " + companion.companionName() + " has died! "
                         + "Use /mineagent respawn to bring them back.");
 
-        System.out.println("[MineAgent] Companion '" + companion.companionName() + "' died");
+        System.out.println("[CraftDroid] Companion '" + companion.companionName() + "' died");
     }
 
     /**
@@ -162,7 +162,7 @@ public class CompanionLifecycleHandler implements CompanionLifecycle {
         if (this.companion != companion) return;
         if (companion instanceof CompanionEntity entity
                 && (entity.gameMode().isHardcore() || entity.hardcoreDeathLocked())) {
-            notifyOwner("§c[MineAgent] A companion that dies in Hardcore mode "
+            notifyOwner("§c[CraftDroid] A companion that dies in Hardcore mode "
                     + "cannot respawn or change mode. Create a new companion.");
             return;
         }
@@ -219,9 +219,9 @@ public class CompanionLifecycleHandler implements CompanionLifecycle {
         loop.resume("companion_respawned");
 
         // Notify the owner
-        notifyOwner("§a[MineAgent] " + companion.companionName() + " has respawned!");
+        notifyOwner("§a[CraftDroid] " + companion.companionName() + " has respawned!");
 
-        System.out.println("[MineAgent] Companion '" + companion.companionName() + "' respawned");
+        System.out.println("[CraftDroid] Companion '" + companion.companionName() + "' respawned");
     }
 
     /**
@@ -249,9 +249,9 @@ public class CompanionLifecycleHandler implements CompanionLifecycle {
         paused = true;
 
         // Notify the owner
-        notifyOwner("§7[MineAgent] " + companion.companionName() + " has been removed.");
+        notifyOwner("§7[CraftDroid] " + companion.companionName() + " has been removed.");
 
-        System.out.println("[MineAgent] Companion '" + companion.companionName()
+        System.out.println("[CraftDroid] Companion '" + companion.companionName()
                 + "' despawned and cleaned up");
     }
 

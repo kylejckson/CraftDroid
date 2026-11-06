@@ -63,7 +63,7 @@ public final class FoodChain implements TaskChain {
             return food < config.foodLow()
                     ? currentPriority(food) : Float.NEGATIVE_INFINITY;
         } catch (Exception error) {
-            System.err.println("[MineAgent] Food priority error: " + error.getMessage());
+            System.err.println("[CraftDroid] Food priority error: " + error.getMessage());
             return Float.NEGATIVE_INFINITY;
         }
     }
@@ -84,7 +84,7 @@ public final class FoodChain implements TaskChain {
                 case EATING -> waitForCompletion(companion, sp);
             }
         } catch (Exception error) {
-            System.err.println("[MineAgent] Food tick error: " + error.getMessage());
+            System.err.println("[CraftDroid] Food tick error: " + error.getMessage());
             cleanup(companion, true);
         }
     }

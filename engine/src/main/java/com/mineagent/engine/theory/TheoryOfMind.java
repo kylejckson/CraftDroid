@@ -15,15 +15,15 @@ import java.util.Map;
  */
 public final class TheoryOfMind {
     public enum PlayerIntent {
-        MINING("正在挖矿"),
-        EXPLORING("正在探索"),
-        BUILDING("正在建造"),
-        FIGHTING("正在战斗"),
-        FARMING("正在务农"),
-        TRADING("正在交易"),
-        IDLE("没有明确目标"),
-        FLEEING("正在撤离危险"),
-        UNKNOWN("意图尚不确定");
+        MINING("mining"),
+        EXPLORING("exploring"),
+        BUILDING("building"),
+        FIGHTING("fighting"),
+        FARMING("farming"),
+        TRADING("trading"),
+        IDLE("has no clear goal"),
+        FLEEING("retreating from danger"),
+        UNKNOWN("intent uncertain");
 
         private final String desc;
         PlayerIntent(String desc) { this.desc = desc; }
@@ -139,13 +139,14 @@ public final class TheoryOfMind {
     }
 
     public String toPromptString() {
-        StringBuilder out = new StringBuilder("## 对玩家的当前理解\n");
-        out.append("- 推断意图: ").append(currentIntent.desc());
-        if (!lastIntentReason.isBlank()) out.append("；证据: ").append(lastIntentReason);
+        StringBuilder out = new StringBuilder("## Current understanding of the player\n");
+        out.append("- Inferred intent: ").append(currentIntent.desc());
+        if (!lastIntentReason.isBlank()) out.append("; evidence: ").append(lastIntentReason);
         out.append('\n').append(String.format(Locale.ROOT,
-                "- 紧急度: %.0f%%；信任度: %.0f%%\n",
+                "- Urgency: %.0f%%; trust: %.0f%%\n",
                 urgency * 100.0f, playerTrust * 100.0f));
-        out.append("这是随新观测衰减的假设，不是事实；与主人明确指令冲突时以指令为准。\n");
+        out.append("This is a hypothesis that decays as new observations arrive, not a fact. "
+                + "The owner's explicit instructions take precedence.\n");
         return out.toString();
     }
 
@@ -154,25 +155,25 @@ public final class TheoryOfMind {
     public float playerTrust() { return playerTrust; }
 
     private static PlayerIntent inferIntent(String action) {
-        if (containsAny(action, "挖", "mine", "dig", "break", "破坏", "ore", "矿")) {
+        if (containsAny(action, "\u6316", "mine", "dig", "break", "\u7834\u574f", "ore", "\u77ff")) {
             return PlayerIntent.MINING;
         }
-        if (containsAny(action, "建", "build", "place", "放置", "craft", "合成", "construct", "搭建")) {
+        if (containsAny(action, "\u5efa", "build", "place", "\u653e\u7f6e", "craft", "\u5408\u6210", "construct", "\u642d\u5efa")) {
             return PlayerIntent.BUILDING;
         }
-        if (containsAny(action, "打", "attack", "kill", "fight", "战斗", "杀", "剑", "sword", "bow")) {
+        if (containsAny(action, "\u6253", "attack", "kill", "fight", "\u6218\u6597", "\u6740", "\u5251", "sword", "bow")) {
             return PlayerIntent.FIGHTING;
         }
-        if (containsAny(action, "种", "farm", "plant", "crop", "农", "harvest")) {
+        if (containsAny(action, "\u79cd", "farm", "plant", "crop", "\u519c", "harvest")) {
             return PlayerIntent.FARMING;
         }
-        if (containsAny(action, "交易", "trade", "villager", "村民", "emerald", "绿宝石")) {
+        if (containsAny(action, "\u4ea4\u6613", "trade", "villager", "\u6751\u6c11", "emerald", "\u7eff\u5b9d\u77f3")) {
             return PlayerIntent.TRADING;
         }
-        if (containsAny(action, "逃", "flee", "escape", "retreat", "撤退", "run away")) {
+        if (containsAny(action, "\u9003", "flee", "escape", "retreat", "\u64a4\u9000", "run away")) {
             return PlayerIntent.FLEEING;
         }
-        if (containsAny(action, "走", "walk", "run", "跑", "move", "移动", "explore", "探索", "travel")) {
+        if (containsAny(action, "\u8d70", "walk", "run", "\u8dd1", "move", "\u79fb\u52a8", "explore", "\u63a2\u7d22", "travel")) {
             return PlayerIntent.EXPLORING;
         }
         return PlayerIntent.UNKNOWN;

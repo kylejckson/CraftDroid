@@ -16,7 +16,13 @@ import net.minecraft.world.level.block.state.BlockState;
  */
 public final class BlockDigger {
 
-    /** Maximum reach distance for block interaction (same as vanilla: 4.5 in survival, 5.0 in creative). */
+    /**
+
+     * Maximum reach distance for block interaction (same as vanilla: 4.5 in survival, 5.0 in
+
+     * creative).
+
+     */
     private static final double REACH_SURVIVAL = 4.5;
     private static final double REACH_CREATIVE = 5.0;
 
@@ -52,7 +58,7 @@ public final class BlockDigger {
             }
             return player.level().getBlockState(pos).isAir();
         } catch (Exception e) {
-            System.err.println("[MineAgent] BlockDigger.digBlock error: " + e.getMessage());
+            System.err.println("[CraftDroid] BlockDigger.digBlock error: " + e.getMessage());
             return false;
         }
     }
@@ -136,7 +142,7 @@ public final class BlockDigger {
             // Break speed = digSpeed / hardness (blocks per second at 20 TPS)
             return Math.max(0, digSpeed / hardness);
         } catch (Exception e) {
-            System.err.println("[MineAgent] BlockDigger.getBreakSpeed error: " + e.getMessage());
+            System.err.println("[CraftDroid] BlockDigger.getBreakSpeed error: " + e.getMessage());
             return 0;
         }
     }
@@ -162,7 +168,7 @@ public final class BlockDigger {
 
             return false;
         } catch (Exception e) {
-            System.err.println("[MineAgent] BlockDigger.canInstantBreak error: " + e.getMessage());
+            System.err.println("[CraftDroid] BlockDigger.canInstantBreak error: " + e.getMessage());
             return false;
         }
     }
@@ -194,7 +200,7 @@ public final class BlockDigger {
 
             return ticks;
         } catch (Exception e) {
-            System.err.println("[MineAgent] BlockDigger.ticksToBreak error: " + e.getMessage());
+            System.err.println("[CraftDroid] BlockDigger.ticksToBreak error: " + e.getMessage());
             return Integer.MAX_VALUE;
         }
     }

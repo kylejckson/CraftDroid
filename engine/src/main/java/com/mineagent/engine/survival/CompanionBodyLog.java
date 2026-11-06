@@ -44,7 +44,7 @@ public final class CompanionBodyLog implements BodyLog {
                 try {
                     forwarder.accept(msg);
                 } catch (Exception e) {
-                    System.err.println("[MineAgent] BodyLog forward error: " + e.getMessage());
+                    System.err.println("[CraftDroid] BodyLog forward error: " + e.getMessage());
                 }
             }
         }
@@ -61,7 +61,7 @@ public final class CompanionBodyLog implements BodyLog {
                 try {
                     loop.onBodyLog(msg);
                 } catch (Exception e) {
-                    System.err.println("[MineAgent] BodyLog flush error: " + e.getMessage());
+                    System.err.println("[CraftDroid] BodyLog flush error: " + e.getMessage());
                 }
             }
         }

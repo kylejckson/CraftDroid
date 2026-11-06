@@ -33,23 +33,19 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 记忆持久化管理器 — 将认知系统的记忆保存到磁盘，并在启动时恢复。
- *
- * <p>解决的问题：所有记忆系统（CognitiveMap、PlaceEventMemory、ReflectionSystem、
- * ImportanceEvaluator）都是纯内存的，游戏关闭后全部丢失，
- * 伴游每次重启都"失忆"。
- *
- * <p>设计：
- * <ul>
- *   <li>真实数据保存：完整序列化各记忆系统的条目（非元数据）</li>
- *   <li>启动恢复：伴游创建时自动恢复上次保存的记忆</li>
- *   <li>定期自动保存：由 AgentLoop 每回合触发（内部限频 1 分钟）</li>
- *   <li>关闭保存：伴游移除/服务器关闭时强制保存</li>
- *   <li>容错：单个文件损坏不影响其他记忆恢复</li>
- * </ul>
- *
- * <p>每个伴游拥有独立的记忆目录（world/data/mineagent_memory/&lt;companionId&gt;/），
- * 多个伴游之间记忆互不干扰。
+
+ * Persist cognitive memories to disk and restore them at companion creation. Serialize actual
+
+ * CognitiveMap, PlaceEventMemory, ReflectionSystem and ImportanceEvaluator entries, not just
+
+ * metadata. AgentLoop requests autosave each round, internally limited to once per minute;
+
+ * removal/shutdown forces a save. Each system restores independently so one corrupt file does not
+
+ * prevent others. Each companion has an isolated world/data/mineagent_memory/&lt;companionId&gt;/
+
+ * directory.
+
  */
 public class MemoryPersistence {
 
@@ -86,7 +82,7 @@ public class MemoryPersistence {
     private static final int MAX_DIALOGUE_PAIRS = 12;
     private static final int MAX_DIALOGUE_CHARS = 4_000;
 
-    /** 自动保存间隔（毫秒） */
+    /** Autosave interval in milliseconds. */
     private static final long AUTO_SAVE_INTERVAL = 60_000;
 
     private volatile Path memoryDir;
@@ -108,15 +104,13 @@ public class MemoryPersistence {
     private final ActionTransactionLedger actionLedger;
     private final ResourceReservationLedger reservationLedger;
 
-    /** 上次保存时间 */
+    /** Last save timestamp. */
     private volatile long lastSaveTime = 0;
     /** Transport state is kept separate from searchable gameplay memory. */
     private volatile ProviderSessionState loadedProviderSession;
     private volatile long lastProviderSaveTime;
 
-    /**
-     * @param memoryDir 该伴游专属的记忆目录（由调用方确保唯一性）
-     */
+    /** The caller must supply a unique directory for this companion's memories. */
     public MemoryPersistence(Path memoryDir,
                              CognitiveMap cognitiveMap,
                              PlaceEventMemory placeEventMemory,
@@ -155,73 +149,74 @@ public class MemoryPersistence {
         this.reservationLedger = reservationLedger;
     }
 
-    /**
-     * 保存所有记忆到磁盘。每个系统独立保存，单个失败不影响其他。
-     */
+    /** Save each memory system independently; one failure does not prevent the others. */
     public synchronized void saveAll() {
         try {
             Files.createDirectories(memoryDir);
         } catch (IOException e) {
-            System.err.println("[MineAgent] Failed to create memory dir: " + e.getMessage());
+            System.err.println("[CraftDroid] Failed to create memory dir: " + e.getMessage());
             return;
         }
         try { saveCognitiveMap(); } catch (Exception e) {
-            System.err.println("[MineAgent] Save cognitive map failed: " + e.getMessage());
+            System.err.println("[CraftDroid] Save cognitive map failed: " + e.getMessage());
         }
         try { savePlaceEventMemory(); } catch (Exception e) {
-            System.err.println("[MineAgent] Save place events failed: " + e.getMessage());
+            System.err.println("[CraftDroid] Save place events failed: " + e.getMessage());
         }
         try { saveImportanceWeights(); } catch (Exception e) {
-            System.err.println("[MineAgent] Save importance weights failed: " + e.getMessage());
+            System.err.println("[CraftDroid] Save importance weights failed: " + e.getMessage());
         }
         try { saveReflections(); } catch (Exception e) {
-            System.err.println("[MineAgent] Save reflections failed: " + e.getMessage());
+            System.err.println("[CraftDroid] Save reflections failed: " + e.getMessage());
         }
         try { savePlan(); } catch (Exception e) {
-            System.err.println("[MineAgent] Save plan failed: " + e.getMessage());
+            System.err.println("[CraftDroid] Save plan failed: " + e.getMessage());
         }
         try { saveBeliefs(); } catch (Exception e) {
-            System.err.println("[MineAgent] Save beliefs failed: " + e.getMessage());
+            System.err.println("[CraftDroid] Save beliefs failed: " + e.getMessage());
         }
         try { saveWorldAssets(); } catch (Exception e) {
-            System.err.println("[MineAgent] Save world assets failed: " + e.getMessage());
+            System.err.println("[CraftDroid] Save world assets failed: " + e.getMessage());
         }
         try { saveExperiences(); } catch (Exception e) {
-            System.err.println("[MineAgent] Save experiences failed: " + e.getMessage());
+            System.err.println("[CraftDroid] Save experiences failed: " + e.getMessage());
         }
         try { saveSkills(); } catch (Exception e) {
-            System.err.println("[MineAgent] Save learned skills failed: " + e.getMessage());
+            System.err.println("[CraftDroid] Save learned skills failed: " + e.getMessage());
         }
         try { saveSemanticWorld(); } catch (Exception e) {
-            System.err.println("[MineAgent] Save semantic world failed: " + e.getMessage());
+            System.err.println("[CraftDroid] Save semantic world failed: " + e.getMessage());
         }
         try { saveRollingPlan(); } catch (Exception e) {
-            System.err.println("[MineAgent] Save rolling plan failed: " + e.getMessage());
+            System.err.println("[CraftDroid] Save rolling plan failed: " + e.getMessage());
         }
         try { saveMechanisms(); } catch (Exception e) {
-            System.err.println("[MineAgent] Save mechanism experiments failed: " + e.getMessage());
+            System.err.println("[CraftDroid] Save mechanism experiments failed: " + e.getMessage());
         }
         try { saveConversation(); } catch (Exception e) {
-            System.err.println("[MineAgent] Save conversation failed: " + e.getMessage());
+            System.err.println("[CraftDroid] Save conversation failed: " + e.getMessage());
         }
         try { saveCognitiveState(); } catch (Exception e) {
-            System.err.println("[MineAgent] Save cognitive state failed: " + e.getMessage());
+            System.err.println("[CraftDroid] Save cognitive state failed: " + e.getMessage());
         }
         try { saveLayeredMemory(); } catch (Exception e) {
-            System.err.println("[MineAgent] Save layered memory failed: " + e.getMessage());
+            System.err.println("[CraftDroid] Save layered memory failed: " + e.getMessage());
         }
         try { saveActionLedger(); } catch (Exception e) {
-            System.err.println("[MineAgent] Save action ledger failed: " + e.getMessage());
+            System.err.println("[CraftDroid] Save action ledger failed: " + e.getMessage());
         }
         try { saveReservations(); } catch (Exception e) {
-            System.err.println("[MineAgent] Save reservations failed: " + e.getMessage());
+            System.err.println("[CraftDroid] Save reservations failed: " + e.getMessage());
         }
         lastSaveTime = System.currentTimeMillis();
     }
 
     /**
-     * 自动保存（距上次保存超过 1 分钟才真正写入）。
-     * 由 AgentLoop 每回合开始时调用，开销可忽略。
+
+     * Called at the start of each AgentLoop round. Write only when at least one minute has
+
+     * elapsed; otherwise overhead is negligible.
+
      */
     public void autoSave() {
         if (System.currentTimeMillis() - lastSaveTime > AUTO_SAVE_INTERVAL) {
@@ -229,9 +224,7 @@ public class MemoryPersistence {
         }
     }
 
-    /**
-     * 从磁盘恢复所有记忆。每个系统独立恢复，单个文件损坏不影响其他。
-     */
+    /** Restore each system independently; a corrupt file does not block other memories. */
     public synchronized void loadAll() {
         if (!Files.isDirectory(memoryDir)) return;
         loadWithQuarantine(COGNITIVE_MAP_FILE, "cognitive map", this::loadCognitiveMap);
@@ -280,7 +273,7 @@ public class MemoryPersistence {
             writeAtomic(memoryDir.resolve(PROVIDER_SESSION_FILE), GSON.toJson(data));
             lastProviderSaveTime = now;
         } catch (Exception failure) {
-            System.err.println("[MineAgent] Save provider session failed: " + failure.getMessage());
+            System.err.println("[CraftDroid] Save provider session failed: " + failure.getMessage());
         }
     }
 
@@ -372,7 +365,7 @@ public class MemoryPersistence {
         try {
             loader.load();
         } catch (Exception failure) {
-            System.err.println("[MineAgent] Load " + label + " failed: "
+            System.err.println("[CraftDroid] Load " + label + " failed: "
                     + failure.getMessage());
             quarantine(memoryDir.resolve(fileName));
         }
@@ -384,9 +377,9 @@ public class MemoryPersistence {
                 + ".corrupt-" + System.currentTimeMillis());
         try {
             Files.move(file, quarantined, StandardCopyOption.REPLACE_EXISTING);
-            System.err.println("[MineAgent] Preserved invalid memory file as " + quarantined);
+            System.err.println("[CraftDroid] Preserved invalid memory file as " + quarantined);
         } catch (IOException moveFailure) {
-            System.err.println("[MineAgent] Could not quarantine invalid memory file: "
+            System.err.println("[CraftDroid] Could not quarantine invalid memory file: "
                     + moveFailure.getMessage());
         }
     }
@@ -513,8 +506,11 @@ public class MemoryPersistence {
     }
 
     /**
-     * 原子写入：先写临时文件再移动，避免游戏崩溃留下截断的 JSON
-     * （截断文件会导致下次启动时该记忆系统被静默清零）。
+
+     * Write a temporary file and move it atomically to avoid truncated JSON after a crash, which
+
+     * could otherwise silently clear that system on restart.
+
      */
     private static void writeAtomic(Path target, String content) throws IOException {
         Files.createDirectories(target.getParent());
@@ -887,7 +883,7 @@ public class MemoryPersistence {
 
     private static void logSkipped(String fileName, int skipped) {
         if (skipped > 0) {
-            System.err.println("[MineAgent] Skipped " + skipped
+            System.err.println("[CraftDroid] Skipped " + skipped
                     + " invalid record(s) while loading " + fileName);
         }
     }
@@ -898,8 +894,11 @@ public class MemoryPersistence {
     }
 
     /**
-     * 迁移记忆目录（伴游改名时调用）。
-     * 先把当前记忆刷到旧目录，再把文件移动到新目录，后续读写都走新目录。
+
+     * Migrate the directory when a companion is renamed. Flush memories to the old directory,
+
+     * move files, then direct future reads and writes to the new directory.
+
      */
     public synchronized void migrateTo(Path newDir) {
         if (newDir == null || newDir.equals(memoryDir)) return;
@@ -928,14 +927,12 @@ public class MemoryPersistence {
                 Files.deleteIfExists(oldDir);
             }
         } catch (IOException e) {
-            System.err.println("[MineAgent] Memory migration failed: " + e.getMessage());
+            System.err.println("[CraftDroid] Memory migration failed: " + e.getMessage());
         }
         this.memoryDir = newDir;
     }
 
-    /**
-     * 清空该伴游的所有持久化记忆文件。
-     */
+    /** Delete all persisted memory files for this companion. */
     public synchronized void clearAll() {
         try {
             Files.deleteIfExists(memoryDir.resolve(COGNITIVE_MAP_FILE));
@@ -991,7 +988,7 @@ public class MemoryPersistence {
             // may already be gone, so the next load will still start from the
             // validated subset; report the failure for diagnostics instead of
             // crashing the server tick.
-            System.err.println("[MineAgent] Failed to clear memories: " + e.getMessage());
+            System.err.println("[CraftDroid] Failed to clear memories: " + e.getMessage());
         }
     }
 }

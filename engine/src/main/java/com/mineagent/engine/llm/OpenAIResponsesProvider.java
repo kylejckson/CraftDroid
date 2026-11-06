@@ -181,7 +181,7 @@ public final class OpenAIResponsesProvider implements LLMProvider {
                     && request.previousResponseId() != null
                     && rejectedPreviousResponse(response.body())) {
                 // Stored response ids can expire or be unavailable on a relay
-                // after restart. Rebuild once from MineAgent's durable local
+                // after restart. Rebuild once from CraftDroid's durable local
                 // history instead of permanently bricking this companion.
                 clearActive(request);
                 return send(withFreshHistory(request), base, true);

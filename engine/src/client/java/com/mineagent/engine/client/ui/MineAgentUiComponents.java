@@ -83,7 +83,7 @@ public final class MineAgentUiComponents {
                 fittedWidth, fittedHeight, screenWidth, screenHeight);
     }
 
-    /** Draws the single primary surface used by every full-screen MineAgent dialog. */
+    /** Draws the single primary surface used by every full-screen CraftDroid dialog. */
     public static void drawPanel(GuiGraphics graphics, int x, int y,
                                  int width, int height, Component title,
                                  boolean accent, int screenWidth, int screenHeight) {

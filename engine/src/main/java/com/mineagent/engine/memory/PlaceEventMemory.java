@@ -4,44 +4,28 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * PEM 位置事件记忆 — 记录"什么-在哪-何时"（What-Where-When）。
- *
- * <p>灵感来自 Mr.Steve (ICLR 2025) 的 Place Event Memory。
- * 解决 AI "瞎转悠"和"重复探索"的核心问题：
- *
- * <ul>
- *   <li><b>记录</b>：在哪里见过什么资源（牛、铁矿石、树）</li>
- *   <li><b>记录</b>：在哪里发生过什么事件（被苦力怕炸、找到钻石）</li>
- *   <li><b>检索</b>：需要某资源时，查记忆里上次见到的位置</li>
- *   <li><b>避免重复</b>：已经搜过的区域不再重复搜索</li>
- * </ul>
- *
- * <p><b>改进:</b>
- * <ul>
- *   <li>去重机制: 同一位置同一subject只保留最新记录</li>
- *   <li>重要性评分: 按重要性淘汰，稀有资源优先保留</li>
- *   <li>索引优化: 使用Map直接访问，避免全量重建</li>
- *   <li>POI验证: 标记已失效的资源点</li>
- * </ul>
- *
- * <p>线程安全：所有读写操作都通过 ConcurrentHashMap。
+
+ * Place Event Memory records what, where and when, inspired by Mr.Steve (ICLR 2025). Remember
+
+ * resource sightings (cows, iron ore, trees) and events (creeper explosions, diamonds), retrieve
+
+ * their last locations and avoid revisiting explored areas. Keep only the newest same-subject
+
+ * record per location; favor important/rare resources during eviction; index directly without
+
+ * full rebuilds; invalidate depleted POIs. Reads and writes use ConcurrentHashMap.
+
  */
 public class PlaceEventMemory {
 
     /**
-     * 一条位置事件记录。
-     *
-     * @param type     事件类型（resource/entity/danger/structure/loot）
-     * @param subject  主体（如 "cow", "iron_ore", "creeper_explosion", "village"）
-     * @param x        X 坐标
-     * @param y        Y 坐标
-     * @param z        Z 坐标
-     * @param dimension 维度（overworld/nether/end）
-     * @param timestamp 游戏时间（tick）
-     * @param note     附注（可为 null）
-     * @param importance 重要性评分 (0.0-1.0)
-     * @param visitCount 访问/强化次数
-     * @param verified 是否已验证仍存在
+
+     * A place-event record: type (resource/entity/danger/structure/loot), subject, X/Y/Z,
+
+     * dimension (overworld/nether/end), game timestamp in ticks, optional note, importance [0,1],
+
+     * visit count and verified-presence flag.
+
      */
     public record PlaceEvent(
             String type,
@@ -54,19 +38,19 @@ public class PlaceEventMemory {
             int visitCount,
             boolean verified
     ) {
-        /** 创建强化副本 */
+        /** Create a reinforced copy. */
         PlaceEvent reinforced(long newTimestamp) {
             return new PlaceEvent(type, subject, x, y, z, dimension, newTimestamp, note,
                     Math.min(1.0f, importance + 0.05f), visitCount + 1, true);
         }
 
-        /** 标记为已失效 */
+        /** Mark as invalid. */
         PlaceEvent invalidated() {
             return new PlaceEvent(type, subject, x, y, z, dimension, timestamp, note,
                     importance * 0.3f, visitCount, false);
         }
 
-        /** 获取位置键 */
+        /** Return the location key. */
         String locationKey() {
             return subject.toLowerCase(Locale.ROOT) + ":" + x + "," + z
                     + ":" + normalizeDimension(dimension);
@@ -75,30 +59,28 @@ public class PlaceEventMemory {
 
     private final List<PlaceEvent> events = Collections.synchronizedList(new ArrayList<>());
 
-    /** 按 subject 建索引，加速检索。 */
+    /** Index by subject for faster retrieval. */
     private final Map<String, List<PlaceEvent>> bySubject = new ConcurrentHashMap<>();
 
-    /** 位置去重索引: locationKey -> PlaceEvent */
+    /** Location deduplication index: locationKey to PlaceEvent. */
     private final Map<String, PlaceEvent> locationIndex = new ConcurrentHashMap<>();
 
-    /** FoV 覆盖：记录已探索的区块坐标集合，避免重复扫描。 */
+    /** Field-of-view coverage: explored chunk coordinates prevent repeated scanning. */
     private final Set<Long> exploredChunks = ConcurrentHashMap.newKeySet();
 
-    /** 最大记忆条目数 */
+    /** Maximum number of memory entries. */
     private static final int MAX_EVENTS = 500;
 
-    /**
-     * 计算记忆重要性分数
-     */
+    /** Calculate memory importance. */
     private float calculateImportance(String type, String subject, String note) {
-        float score = 0.5f; // 基础分
+        float score = 0.5f; // Base score.
 
-        // 危险记忆重要性高
+        // Danger memories receive high importance.
         if ("danger".equals(type)) score += 0.35f;
         if ("loot".equals(type)) score += 0.25f;
         if ("structure".equals(type)) score += 0.15f;
 
-        // 稀有资源加分
+        // Rare-resource bonus.
         String lower = (subject + " " + (note != null ? note : "")).toLowerCase();
         if (lower.contains("diamond") || lower.contains("emerald") ||
             lower.contains("ancient") || lower.contains("netherite") ||
@@ -113,9 +95,7 @@ public class PlaceEventMemory {
         return Math.min(1.0f, score);
     }
 
-    /**
-     * 记录一条位置事件（带去重）。
-     */
+    /** Record a place event with deduplication. */
     public void remember(String type, String subject,
                           int x, int y, int z, String dimension,
                           long timestamp, String note) {
@@ -124,28 +104,28 @@ public class PlaceEventMemory {
         String locKey = subject.toLowerCase(Locale.ROOT) + ":" + x + "," + z
                 + ":" + normalizedDimension;
 
-        // 检查是否已存在相同位置相同subject的记忆
+        // Check for the same subject at the same location.
         PlaceEvent existing = locationIndex.get(locKey);
         if (existing != null) {
-            // 更新现有记忆：增加访问次数，更新重要性
+            // Update the existing memory, increasing visits and importance.
             float newImportance = Math.max(existing.importance(),
                     calculateImportance(type, subject, note));
             PlaceEvent updated = new PlaceEvent(type, subject, x, y, z, normalizedDimension,
                     timestamp, note, newImportance, existing.visitCount() + 1, true);
 
-            // 从旧位置移除，添加新记录
+            // Remove the old location entry and add the new record.
             removeFromIndices(existing);
             addToIndices(updated);
             return;
         }
 
-        // 创建新记忆
+        // Create a new memory.
         float importance = calculateImportance(type, subject, note);
         PlaceEvent e = new PlaceEvent(type, subject, x, y, z, normalizedDimension,
                 timestamp, note, importance, 1, true);
         addToIndices(e);
 
-        // 按重要性淘汰：超过容量时移除最不重要的
+        // Over capacity, evict the least important entry.
         while (events.size() > MAX_EVENTS) {
             PlaceEvent leastImportant = findLeastImportant();
             if (leastImportant != null) {
@@ -156,7 +136,7 @@ public class PlaceEventMemory {
         }
     }
 
-    /** 添加到索引（bySubject 列表读写两侧都必须 synchronized (list)） */
+    /** Add to indexes; both reads and writes of bySubject lists must synchronize on the list. */
     private void addToIndices(PlaceEvent e) {
         events.add(e);
         List<PlaceEvent> list = bySubject.computeIfAbsent(e.subject().toLowerCase(Locale.ROOT),
@@ -167,7 +147,7 @@ public class PlaceEventMemory {
         locationIndex.put(e.locationKey(), e);
     }
 
-    /** 从索引移除 */
+    /** Remove from indexes. */
     private void removeFromIndices(PlaceEvent e) {
         events.remove(e);
         locationIndex.remove(e.locationKey());
@@ -182,7 +162,7 @@ public class PlaceEventMemory {
         }
     }
 
-    /** 找到最不重要的记忆 */
+    /** Find the least important memory. */
     private PlaceEvent findLeastImportant() {
         if (events.isEmpty()) return null;
 
@@ -191,9 +171,9 @@ public class PlaceEventMemory {
 
         synchronized (events) {
             for (PlaceEvent e : events) {
-                // 综合评分：重要性 * 0.5 + 访问次数 * 0.2 + 时间衰减 * 0.2 + 验证状态 * 0.1
+                // Combined score: importance*0.5 + visits*0.2 + time decay*0.2 + verification*0.1.
                 long age = System.currentTimeMillis() - e.timestamp();
-                float timeFactor = Math.max(0.1f, 1.0f - age / 7200000f); // 2小时衰减
+                float timeFactor = Math.max(0.1f, 1.0f - age / 7200000f); // Two-hour decay.
                 float verifiedBonus = e.verified() ? 0.1f : 0f;
                 float score = e.importance() * 0.5f +
                              Math.min(e.visitCount() / 10f, 1.0f) * 0.2f +
@@ -209,9 +189,7 @@ public class PlaceEventMemory {
         return least;
     }
 
-    /**
-     * 标记某个位置的资源为已失效（如已被挖掘）。
-     */
+    /** Invalidate a resource location, for example after mining it. */
     public void invalidate(String subject, int x, int y, int z, String dimension) {
         if (subject == null || subject.isBlank()) return;
         String locKey = subject.toLowerCase(Locale.ROOT) + ":" + x + "," + z
@@ -224,29 +202,22 @@ public class PlaceEventMemory {
         }
     }
 
-    /**
-     * 查找某个 subject 最近一次出现的位置。
-     *
-     * @param subject 资源名（如 "iron_ore", "cow", "village"）
-     * @return 最近的 PlaceEvent，或 null
-     */
+    /** Return the most recent PlaceEvent for a subject such as iron_ore, cow or village, or null. */
     public PlaceEvent findLastSeen(String subject) {
         if (subject == null || subject.isBlank()) return null;
         List<PlaceEvent> list = bySubject.get(subject.toLowerCase(Locale.ROOT));
         if (list == null || list.isEmpty()) return null;
         synchronized (list) {
-            // 过滤掉已失效的，返回最新的有效记录
+            // Filter invalid entries and return the latest valid record.
             for (int i = list.size() - 1; i >= 0; i--) {
                 PlaceEvent e = list.get(i);
                 if (e.verified()) return e;
             }
-            return list.get(list.size() - 1); // 都失效则返回最新的
+            return list.get(list.size() - 1); // If all entries are invalid, return the latest one.
         }
     }
 
-    /**
-     * 查找某个 subject 在指定维度内的所有出现位置。
-     */
+    /** Find all sightings of a subject within a dimension. */
     public List<PlaceEvent> findAll(String subject, String dimension) {
         if (subject == null || subject.isBlank()) return Collections.emptyList();
         List<PlaceEvent> list = bySubject.get(subject.toLowerCase(Locale.ROOT));
@@ -260,29 +231,22 @@ public class PlaceEventMemory {
                 }
             }
         }
-        // 按重要性排序
+        // Sort by importance.
         result.sort((a, b) -> Float.compare(b.importance(), a.importance()));
         return result;
     }
 
-    /**
-     * 标记一个区块为已探索。
-     */
+    /** Mark a chunk as explored. */
     public void markExplored(int chunkX, int chunkZ) {
         exploredChunks.add(chunkKey(chunkX, chunkZ));
     }
 
-    /**
-     * 检查一个区块是否已探索过。
-     */
+    /** Check whether a chunk has been explored. */
     public boolean isExplored(int chunkX, int chunkZ) {
         return exploredChunks.contains(chunkKey(chunkX, chunkZ));
     }
 
-    /**
-     * 生成供 LLM 使用的记忆摘要文本。
-     * 只返回最近、最相关的记忆，避免 token 膨胀。
-     */
+    /** Render only recent, relevant memories for the LLM to limit token usage. */
     public String summarizeForPrompt() {
         return summarizeForPrompt("", 10);
     }
@@ -290,18 +254,18 @@ public class PlaceEventMemory {
     /** Return only locations semantically related to the active objective. */
     public String summarizeForPrompt(String query, int limit) {
         if (limit <= 0) return "";
-        if (events.isEmpty()) return "（暂无位置记忆）";
+        if (events.isEmpty()) return "(No location memories yet)";
         String needle = query == null ? "" : query.trim();
 
         StringBuilder sb = new StringBuilder();
-        sb.append("## 位置记忆（最近见过的资源/事件）\n");
+        sb.append("## Location memories (recent resource/event sightings)\n");
 
-        // 按 subject 分组，每组只取最近一条有效记录
+        // Group by subject and keep only the latest valid record per group.
         Map<String, PlaceEvent> latest = new LinkedHashMap<>();
         synchronized (events) {
             for (PlaceEvent e : events) {
                 if (e.verified()) {
-                    latest.put(e.subject().toLowerCase(Locale.ROOT), e); // 后面的覆盖前面的
+                    latest.put(e.subject().toLowerCase(Locale.ROOT), e); // Later entries overwrite earlier ones.
                 }
             }
         }
@@ -329,8 +293,8 @@ public class PlaceEventMemory {
             shown++;
         }
 
-        // 已探索区块数
-        sb.append("（已探索 ").append(exploredChunks.size()).append(" 个区块）\n");
+        // Number of explored chunks.
+        sb.append("(Explored ").append(exploredChunks.size()).append(" chunks)\n");
 
         return sb.toString();
     }
@@ -350,7 +314,7 @@ public class PlaceEventMemory {
         return ((long) x << 32) | (z & 0xFFFFFFFFL);
     }
 
-    /** 清空所有记忆（用于测试或重置） */
+    /** Clear all memories for testing or reset. */
     public void clear() {
         events.clear();
         bySubject.clear();
@@ -358,20 +322,16 @@ public class PlaceEventMemory {
         exploredChunks.clear();
     }
 
-    // ─── 持久化支持 ───
+    // Persistence support.
 
-    /**
-     * 导出所有记忆事件（用于持久化保存）。
-     */
+    /** Export all memory events for persistence. */
     public List<PlaceEvent> exportAll() {
         synchronized (events) {
             return new ArrayList<>(events);
         }
     }
 
-    /**
-     * 导入记忆事件列表（用于持久化恢复），替换当前所有数据。
-     */
+    /** Import persisted events, replacing all current data. */
     public void importAll(List<PlaceEvent> imported) {
         events.clear();
         bySubject.clear();
@@ -388,7 +348,7 @@ public class PlaceEventMemory {
                         importance, Math.max(0, e.visitCount()), e.verified()));
             }
         }
-        // 导入后若超容量则按重要性淘汰
+        // After import, evict by importance if over capacity.
         while (events.size() > MAX_EVENTS) {
             PlaceEvent leastImportant = findLeastImportant();
             if (leastImportant != null) {
@@ -399,7 +359,7 @@ public class PlaceEventMemory {
         }
     }
 
-    /** 获取记忆条目数 */
+    /** Return the number of memory entries. */
     public int size() {
         return events.size();
     }

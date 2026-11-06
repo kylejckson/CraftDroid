@@ -44,7 +44,7 @@ import javax.crypto.spec.SecretKeySpec;
  * other Bedrock models; model-specific {@code InvokeModel} JSON is intentionally
  * not guessed because those bodies differ between vendors and versions.</p>
  *
- * <p>The single MineAgent API-key field accepts one of these forms:</p>
+ * <p>The single CraftDroid API-key field accepts one of these forms:</p>
  * <ul>
  *   <li>JSON: {@code {"accessKeyId":"...","secretAccessKey":"...",
  *       "sessionToken":"...","region":"us-east-1"}}</li>

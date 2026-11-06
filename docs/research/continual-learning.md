@@ -1,132 +1,128 @@
-# 持续学习、机制迁移与成本验证
+# Continual learning, mechanism transfer and cost validation
 
-本文描述当前开发分支的设计、研究依据和验证边界。目标是在固定底座模型和工具权限的条件下，让游戏经历改善后续预测、探索选择与技能复用。这里没有宣称实现 AGI，也没有宣称实机表现超过外部项目。
+This document describes the development branch's design, research basis and validation limits. With the base model and tool permissions fixed, the goal is for gameplay experience to improve later predictions, exploration choices and skill reuse. It claims neither AGI nor superior live performance over external projects.
 
-当前分支功能版本为 **v0.6.0**。本版加入陌生对象观察、多条件经验、结构化反思、类型约束迁移、有界重学和经验修复。使用方式见 [v0.6.0 设计与工具入口](mod-learning-0.6.0.md)，实测范围见 [v0.6.0 验证](validation-0.6.0.md)。0.x 仍处于初始开发阶段，版本名称不能替代质量证据。参见 [SemVer 官方规范](https://semver.org/lang/zh-CN/)。
+The feature version described here is **v0.6.0**. It adds unfamiliar-object observations, multi-condition experience, structured reflection, type-constrained transfer, bounded relearning and experience-based repair. See [v0.6.0 design and tools](mod-learning-0.6.0.md) and [validation](validation-0.6.0.md). Versions 0.x remain initial development; names do not replace quality evidence. See [SemVer](https://semver.org/).
 
-## 研究依据与项目设计
+## Research basis and project design
 
-| 来源 | 可借鉴的研究结论或机制 | MineAgent 当前采用的方式 |
+| Source | Relevant finding or mechanism | CraftDroid's approach |
 | --- | --- | --- |
-| [Voyager](https://github.com/MineDojo/Voyager) | 自主课程、可执行技能和环境反馈可以形成持续学习过程 | 保留既有技能运行时，增加观察到的知识缺口课程与目标绑定 |
-| [Active World Model Learning with Progress Curiosity，ICML 2020](https://proceedings.mlr.press/v119/kim20e.html) | 学习进展比持续的预测误差更适合区分可学习动态与噪声 | 对经验证实验计算预测损失变化，降低稳定已知机制和无进展噪声的探索优先级 |
-| [DreamerV3 官方实现 / Nature 2025](https://github.com/danijar/dreamerv3) | 预测世界动态为学习与规划提供共同基础 | 使用小型符号条件预测器；没有复制其神经世界模型、强化学习训练或成绩 |
-| [WISE，arXiv v2](https://arxiv.org/html/2606.12852v2) | 语义可供性记忆和机会调度能够连接观察与任务相关性 | 课程按当前目标筛选已观察机制，预测提供动作结果和不确定性 |
-| [PEAM，Findings of EMNLP 2026](https://aclanthology.org/2026.findings-emnlp.1326/) | 经验内化到快速执行模块是值得研究的方向 | 当前采用外部证据与可执行技能；参数训练和 LoRA 蒸馏尚未实现 |
-| [PSN，arXiv v2，2026](https://arxiv.org/abs/2601.03509) / [实现](https://github.com/evolving-skill-networks/psn) | 组合技能网络、结构化故障定位、成熟度更新门控和回滚验证已有人研究 | 不把“可组合技能”本身当作独有创新；本分支聚焦实验结果如何校准预测、探索和迁移验收 |
-| [Agentic Harness Engineering，arXiv v4，2026](https://arxiv.org/abs/2604.25850v4) | 将可观察经历和预期结果连接为可证伪契约 | 让同一份条件经验约束技能、修复和复用；没有实现自动改写 Harness 或复现其成绩 |
-| [Anthropic 长程智能体 Harness](https://www.anthropic.com/research/effective-harnesses-for-long-running-agents) | 用明确的进度产物和实际验证支持跨上下文工作 | 持久化原始实验与条件规则，恢复后重算执行资格；真实服务器测试与组件回归分开记录 |
-| [JARVIS-1 官方实现](https://github.com/CraftJarvis/JARVIS-1) | 多模态经验记忆辅助规划与分层控制 | 记忆与规划本身已有强基线；当前增加的是可检查的条件结果与反例处理，尚无跨项目性能结论 |
-| [Optimus-3，arXiv v2](https://arxiv.org/abs/2506.10357) | 通过任务与层级路由协调快速执行和深度推理 | 当前解决独立伙伴请求串行问题，保留既有本地执行层；没有实现其 MoE、训练数据或 DGRPO |
-| [Mindcraft 官方实现](https://github.com/mindcraft-bots/mindcraft) | Mineflayer 与 LLM 结合的成熟开源参照 | 多模型接入本身不足以形成差异；MineAgent 的服务端组件支持直接验收动作结果，但不等同于视觉控制基线 |
-| [DEPS，NeurIPS 2023](https://arxiv.org/abs/2302.01560) | Minecraft 长程计划需要执行反馈、失败解释和子目标选择 | 使用服务器事实检查当前前提，以显式优先级与剩余依赖深度调度；没有复现其可训练 selector 或成绩 |
-| [AdaPlanner，NeurIPS 2023](https://proceedings.neurips.cc/paper_files/paper/2023/hash/b5c8c1c117618267944b2617add0a766-Abstract.html) | 根据反馈细化计划，区分计划内修正与计划重构 | 将证据未知与实际矛盾分开，保留完成历史并修复后续依赖；不把反馈规划本身称为独有算法 |
-| [MirrorCraft，arXiv v2，2026](https://arxiv.org/abs/2607.29218v2) | 在地形、资源、目标、接口与预算匹配的成对世界中，测试隐藏规则变化的影响 | 作为后续实机基准的设计依据；尚未运行或复现其评测，规则变化测试本身不是本项目独有创新 |
-| [MC-EvoBench，arXiv，2026](https://arxiv.org/abs/2610.13829) | 区分持久能力迁移与携带资源、源任务接触量和前置执行瓶颈带来的影响 | 后续迁移实验重置目标世界，仅允许声明的经验产物跨世界，并增加相关、无关和打乱经验对照；尚未运行该基准 |
+| [Voyager](https://github.com/MineDojo/Voyager) | Autonomous curricula, executable skills and environmental feedback support continual learning | Retain the skill runtime; add curricula from observed knowledge gaps and target bindings |
+| [Active World Model Learning with Progress Curiosity, ICML 2020](https://proceedings.mlr.press/v119/kim20e.html) | Learning progress distinguishes learnable dynamics from noise better than persistent prediction error | Measure prediction-loss changes on verified experiments; reduce priority for stable known mechanisms and noise without progress |
+| [DreamerV3 implementation / Nature 2025](https://github.com/danijar/dreamerv3) | Predictive world dynamics provide a shared basis for learning and planning | A small symbolic conditional predictor, without reproducing its neural world model, reinforcement-learning training or scores |
+| [WISE, arXiv v2](https://arxiv.org/html/2606.12852v2) | Semantic affordance memory and opportunity scheduling connect observations to task relevance | Goal-filtered observed mechanisms; predictions expose outcomes and uncertainty |
+| [PEAM, Findings of EMNLP 2026](https://aclanthology.org/2026.findings-emnlp.1326/) | Internalizing experience into fast execution modules is a research direction | External evidence and executable skills; parameter training and LoRA distillation are not implemented |
+| [PSN, arXiv v2, 2026](https://arxiv.org/abs/2601.03509) / [implementation](https://github.com/evolving-skill-networks/psn) | Compositional skill networks, structured fault localization, maturity gates and rollback verification already exist | Do not claim composable skills alone as novel; focus on experiment results calibrating prediction, exploration and transfer acceptance |
+| [Agentic Harness Engineering, arXiv v4, 2026](https://arxiv.org/abs/2604.25850v4) | Connect observed experience and expected outcomes through falsifiable contracts | The same conditional experience constrains skills, repair and reuse; no automatic harness rewriting or reproduced scores |
+| [Anthropic long-running agent harnesses](https://www.anthropic.com/research/effective-harnesses-for-long-running-agents) | Explicit progress artifacts and real validation support work across contexts | Persist raw experiments/conditions; recompute execution authority on restore; report real-server tests separately from component regressions |
+| [JARVIS-1 implementation](https://github.com/CraftJarvis/JARVIS-1) | Multimodal experience memory assists planning and hierarchical control | Memory/planning already have strong baselines; add inspectable conditional outcomes and counterexamples, without cross-project performance claims |
+| [Optimus-3, arXiv v2](https://arxiv.org/abs/2506.10357) | Task/hierarchical routing coordinates fast execution with deep reasoning | Remove built-in companion request serialization while retaining local execution; no reproduction of MoE, training data or DGRPO |
+| [Mindcraft implementation](https://github.com/mindcraft-bots/mindcraft) | A mature open-source Mineflayer/LLM reference | Multi-model connectivity alone is not distinctive; server components permit direct outcome validation, but differ from visual-control baselines |
+| [DEPS, NeurIPS 2023](https://arxiv.org/abs/2302.01560) | Long Minecraft plans need execution feedback, failure explanations and subgoal selection | Server facts check prerequisites; schedule by priority and remaining dependency depth, without reproducing its trainable selector or scores |
+| [AdaPlanner, NeurIPS 2023](https://proceedings.neurips.cc/paper_files/paper/2023/hash/b5c8c1c117618267944b2617add0a766-Abstract.html) | Feedback refines plans through in-plan corrections or reconstruction | Separate unknown evidence from contradiction; preserve completed history and repair suffixes; feedback planning itself is not claimed novel |
+| [MirrorCraft, arXiv v2, 2026](https://arxiv.org/abs/2607.29218v2) | Paired worlds with matched terrain/resources/goals/interfaces/budgets isolate hidden-rule changes | A basis for future live benchmarks, not a reproduced evaluation or a claim that rule-change testing is unique |
+| [MC-EvoBench, arXiv, 2026](https://arxiv.org/abs/2610.13829) | Separate durable transfer from carried resources, source-task exposure and prerequisite bottlenecks | Future experiments reset target worlds, permit only declared experience artifacts and compare relevant/irrelevant/shuffled histories; benchmark not yet run |
 
-本分支的项目设计贡献是让同一份可证伪的条件经验同时约束预测、探索、动作与验收绑定、计划修复、经验上下文复用以及重学预算。反例改变执行资格和待执行依赖，经验失效也会更新模型中的稳定引用；不能只在记忆中追加一段反思。这是可检查的工程组合创新；是否构成新的研究算法贡献，仍需对照实验和更广泛的文献比较。
+The design contribution combines falsifiable conditional experience across prediction, exploration, action/acceptance bindings, plan repair, experience-context reuse and relearning budgets. Counterexamples change execution authority and pending dependencies; invalidation updates stable model references rather than merely appending reflection text. This is an inspectable engineering combination. Establishing a new research algorithm requires controlled experiments and broader literature comparisons.
 
-## 差异化与研究主张
+## Differentiation and research claims
 
-建议产品定位是“能在陌生规则下形成、检验并迁移经验的 AI 玩家”。已有工作已经覆盖技能库、记忆、反思、自动课程和快慢推理，堆叠这些模块或宣称“自主通关”不足以证明差异。更有价值的主张应当是：固定底座模型以后，互动经历能让它在未见布局、规则变化和组合目标下持续减少试错，同时降低每个成功任务的总成本。这是待验证的研究假设。
+The proposed positioning is an AI player that forms, tests and transfers experience under unfamiliar rules. Existing work already covers skills, memory, reflection, curricula and fast/slow reasoning. Combining those modules or claiming autonomous completion does not establish differentiation. The testable hypothesis is that, with a fixed base model, interaction experience reduces trial and error on unseen layouts, rule changes and composite goals while lowering total cost per successful task.
 
-| 用户关注的能力 | 当前分支的具体进展 | 仍需补齐的关键证据或能力 |
+| Capability | Current progress | Missing evidence or capabilities |
 | --- | --- | --- |
-| 学习与记忆 | 经验证干预形成条件预测并持久化；同一物理设置改名不能增加支持数 | 长程旧任务保持率、证据选择与多模态状态表示 |
-| 规划与创新 | 将分别学到的转换组合为新短路线；长程 DAG 逐步检查实时前提、选择关键依赖链并修复后续计划 | 自动从多对象、多谓词经验生成长计划；新机制假设仍主要依赖接入模型 |
-| 反应与随机应变 | 内置伙伴会话并发；缺失证据、取消与失败分开；矛盾路线停止推荐 | 真实危险反应的 P50/P95 tick 与服务器耗时；学习型快策略尚未实现 |
-| 探索与未知问题 | 经验预测、学习进展、目标相关知识缺口共同指导预算内探针 | 排除外源干扰的对照干预、长程主动探索、隐藏机制盲测 |
-| 成本与缓存 | 稳定 Anthropic 缓存块、缓存读写统计、技能本地执行基础 | 各官方/中转/本地端点的实际账单、缓存资格与按成功任务归一的成本 |
+| Learning and memory | Verified interventions form persisted conditional predictions; renaming a physical setup cannot increase support | Long-term old-task retention, evidence selection and multimodal state representation |
+| Planning and innovation | Independently learned transitions form new short routes; long DAGs check live prerequisites, choose critical chains and repair suffixes | Automatic long plans across multiple objects/predicates; novel hypotheses still depend mainly on the connected model |
+| Reaction and adaptation | Concurrent built-in companion sessions; separate missing evidence, cancellation and failure; contradicted routes stop being recommended | P50/P95 danger-response ticks and server time; learned fast policies |
+| Exploration and unknown problems | Predictions, progress and goal-related knowledge gaps guide budgeted probes | Controlled interventions excluding external interference, long-horizon active exploration and hidden-mechanism blind tests |
+| Cost and caching | Stable Anthropic blocks, cache read/write metrics and local skill execution | Actual official/relay/local bills, eligibility and cost normalized by successful tasks |
 
-v0.6.0 已加入多谓词条件、类型约束实例迁移和测试专用陌生机器的原生服务器场景。下一步研究应扩大机制族与外部模组覆盖，验证跨对象关系和旧任务保持，再评估把高置信技能蒸馏到本地轻量策略。只有在冻结旧策略、保留独立测试任务并验证回归后才应推广自动改写或参数训练。当前没有部署自主权重更新。
+v0.6.0 adds multi-predicate conditions, type-constrained instance transfer and native server scenarios with test-only unfamiliar machines. Next, broaden mechanism families and external mods, test cross-object relationships and retention, then evaluate distilling high-confidence skills into lightweight local policies. Automatic rewriting/training should follow frozen old policies, independent held-out tasks and regression checks. No autonomous weight updates are deployed.
 
-## 陌生模组学习与迁移：长期目标与验收要求
+## Unfamiliar-mod learning and transfer: long-term goals and acceptance
 
-2026-11-03 补充。用户明确要求 AI 玩家进入未预置攻略的模组或整合包后，能够通过游戏内可得的信息与行动反馈，快速学习新角色、规则、环境、玩法和物品，反思失败，迁移经验并熟练组合利用新内容。该要求同时约束学习、长程规划、反应、创新、记忆、探索、适应和每次成功任务的成本。以下保留完整的研究目标；v0.6.0 实现了其受支持公开接口上的工程闭环，尚未验证完整跨模组玩法熟练度。
+Added 2026-11-03. The requested AI player should enter mods/modpacks without preloaded guides, use available in-game information and feedback to learn actors, rules, environments, gameplay and items, reflect on failure, transfer experience and combine new content. This constrains learning, long planning, reaction, innovation, memory, exploration, adaptation and cost per successful task. These remain full research goals: v0.6.0 closes the engineering loop on supported public interfaces, without establishing complete cross-mod mastery.
 
-### 当前工具覆盖与兼容边界
+### Tool coverage and compatibility boundaries
 
-当前 `LookAroundTool` 可以识别通用容器与部分设施，对其余带方块实体的对象主要给出 `inspect/interact`；这不能自动解释其机器规则。`InspectGuiTool` 能读取已打开菜单的通用槽位，但尚未通用化自定义按钮、任务对话、能量条和客户端专有界面。`LookupRecipeTool` 查询通过 Minecraft 配方管理器及通用配方接口可表达的内容，不能假定覆盖任意模组私有配方、解锁条件和专用加工系统。`AdaptationRuntime` 当前只将有限动作工具支持的已确认规则转为技能。
+`LookAroundTool` recognizes generic containers and some facilities; other block entities generally expose `inspect/interact`, which does not explain machine rules. `InspectGuiTool` reads generic open-menu slots but does not generically handle custom buttons, quest dialogue, energy bars or client-only screens. `LookupRecipeTool` queries what Minecraft's recipe manager and generic recipe interfaces express, not arbitrary private recipes, unlocks or specialized processing. `AdaptationRuntime` compiles confirmed rules only for its limited supported action tools.
 
-模组泛化必须分别验收三个条件：对象状态是否可观察、必要行动是否可执行、经验是否改善后续行为。缺少交互通道应记录为接口覆盖缺口；它本身不能证明某个机制不可学习。模组 NPC 拒绝 FakePlayer、客户端专有交互、专用按键或自定义网络协议，都需要单独的兼容性验证。
+Evaluate three conditions separately: can object state be observed, can required actions execute, and does experience improve later behavior? Missing interaction is a coverage gap, not proof a mechanism is unlearnable. NPC FakePlayer rejection, client-only interactions, dedicated keys and custom protocols need separate compatibility validation.
 
-在 Minecraft 版本与加载器兼容的前提下，优先构建可复用的观察和动作桥接，再为通用接口无法表达的内容提供小型适配器。适配器应暴露约定的观察与合法操作，并声明字段含义、单位、权限和副作用。隐藏规则发现测试禁止适配器直接提供规则答案、读取私有源码推导答案或越过游戏内解锁与交互条件。
+Within compatible Minecraft/loader versions, prioritize reusable observation/action bridges, then small adapters where generic interfaces cannot express content. Adapters declare observation fields, units, permissions and side effects, exposing agreed observations and legal operations. Hidden-rule discovery tests must not provide rule answers, infer them from private implementation source or bypass in-game unlock/interaction conditions.
 
-[NeoForge 1.21/1.21.1 官方能力接口](https://docs.neoforged.net/docs/1.21.1/inventories/capabilities/) 为物品、流体和能量提供通用接口，可作为相应桥接的依据；具体模组仍需确认是否暴露这些接口。能力接口的存在不能替代对机器用途和因果条件的学习，也不自动授权读取所有服务端状态。
+[NeoForge 1.21/1.21.1 capabilities](https://docs.neoforged.net/docs/1.21.1/inventories/capabilities/) provide generic item, fluid and energy interfaces. Individual mods must expose them. An available capability neither teaches machine purpose/causal conditions nor authorizes all server-state reads.
 
-### 需要学到的内容
+### What must be learned
 
-| 内容 | 需要形成的经验 | 验收示例 |
+| Content | Required experience | Example acceptance |
 | --- | --- | --- |
-| 新角色与生物 | 可交互方式、行为、阵营、对话或任务前提；区分已观察行为与模型猜测 | 换一个角色实例后仍能正确交互；中立角色状态改变后及时更新策略 |
-| 新物品与设备 | 属性、使用条件、输入输出、槽位和操作顺序；按需读取公开说明 | 面对新材料和装置，完成受支持交互并以实际产出证明用途 |
-| 新规则与玩法 | 多条件和时序机制、解锁路径、资源循环、风险与失败原因 | 区分缺能量、缺原料、操作错误、等待未完成和规则改变 |
-| 新环境 | 维度、生物群系、昼夜、天气及危险条件与行为结果的关系 | 保留通用生存能力，同时学习新环境中特有的限制 |
-| 跨对象与跨模组组合 | 从对象名称和坐标中抽象可迁移关系；保持输入输出、单位和前提一致 | 将一个模组的产物接入另一个模组的加工链，并验收最终目标 |
+| New actors and creatures | Interaction, behavior, affiliation, dialogue/quest prerequisites; distinguish observation from guesses | Interact correctly with another instance; update strategy when a neutral actor changes state |
+| New items and devices | Properties, use conditions, inputs/outputs, slots and operation order; retrieve public descriptions as needed | Demonstrate supported interactions and actual output for unfamiliar materials/devices |
+| New rules and gameplay | Multi-condition/timing mechanisms, unlocks, resource cycles, risks and failure causes | Distinguish missing energy/materials, incorrect operations, incomplete waits and changed rules |
+| New environments | Relations among dimension, biome, time, weather, hazards and outcomes | Preserve generic survival while learning environment-specific constraints |
+| Cross-object/mod combinations | Transferable relations abstracted from names/coordinates, with consistent inputs/outputs, units and prerequisites | Feed one mod's output into another's processing chain and verify the final goal |
 
-所有迁移均需检查适用条件。名字、外观或相同注册 ID 只能产生候选类比，不能单独授权复用；类似用途的能量、流体或配方类型也不一定实际互通。
+All transfer checks applicability. Names, appearances or identical IDs suggest analogies but cannot authorize reuse alone. Similar-purpose energy, fluid and recipe types may still be incompatible.
 
-### 经验、规划和复用共同受证据约束
+### Shared evidence constraints on experience, planning and reuse
 
-后续设计以同一份结构化经验连接预测、技能、计划和决策复用。经验应包含对象与关系、动作、前提、观察结果、独立证据、反例、环境适用范围以及被哪些技能和计划依赖。一次交互被接受并不等于玩法目标已经完成。
+Structured experience should connect prediction, skills, plans and decision reuse, recording objects/relations, actions, prerequisites, observations, independent support, counterexamples, environment scope and dependent skills/plans. Interaction acceptance does not mean the gameplay goal is complete.
 
-目标流程是：发现未知对象与能力缺口，按需获取游戏内说明、已解锁资料或观察，提出可区分的假设，选择预算内的小实验，等待并核对实际效果，将得到的规则编入技能和计划，再在新实例或新组合中复核。失败反思必须改变可检查的条件、假设或下一次实验，不能只追加一段解释文本。
+The target loop discovers unfamiliar objects and capability gaps, retrieves in-game descriptions/unlocked information/observations, proposes distinguishable hypotheses, performs small budgeted experiments, waits for and checks effects, compiles rules into skills/plans, and retests on new instances/combinations. Reflection must change inspectable conditions, hypotheses or the next experiment rather than append an explanation.
 
-出现经过验证的规则矛盾时，暂停依赖该规则的自动技能和决策复用，修复受影响的待执行计划；保留无关经验和已经完成的历史。对未观察、超时、工具故障、并发外源干扰与真正机制反例分别记录。能排除的干扰应通过对照或重复实验排除，不能把先后发生直接解释为因果关系。
+Verified contradictions pause dependent automatic skills and decision reuse and repair pending plans, while preserving unrelated experience and completed history. Record missing observations, timeouts, tool faults, external concurrent interference and genuine counterexamples separately. Use controls or repeated experiments to exclude interference when possible; sequence alone is not causality.
 
-当前环境指纹覆盖游戏版本、加载器、模组 ID/版本及部分注册表 ID；它没有证明同版本模组的配置、数据包、脚本配方或世界进度相同。v0.6.0 已接入成功的数据重载事件，在无法识别规则依赖时保守失效全部学习规则；单个实测反例只失效相同条件契约的冲突规则。未来还需更细的规则来源和依赖索引，减少无关数据重载导致的重复验证。不能仅因加载器模组列表相同就认定旧规则仍有效。
+Fingerprints cover game version, loader, mod IDs/versions and some registry IDs, not proof that configurations, datapacks, scripted recipes or world progression match. v0.6.0 handles successful data reloads by conservatively invalidating all rules when dependencies are unknown; individual counterexamples invalidate conflicting contracts locally. Finer rule provenance/dependency indexes should reduce needless revalidation. Matching mod lists alone cannot establish rule validity.
 
-本地反应与模型规划分开调度：已验证技能在满足当前条件时执行；危险、关键前提变化或证据冲突触发暂停或升级推理；延迟返回的模型建议仍需检查当前目标和行动前提。官方 API、中转和本地模型都能通过外部经验与技能成长，底座权重训练不作为通用接入的前提。
+Schedule local reaction separately from model planning. Execute verified skills only under current conditions; danger, changed prerequisites or conflicting evidence pause/escalate reasoning. Late model suggestions still check current goals and conditions. Official APIs, relays and local models can improve through external experience/skills without requiring weight training.
 
-### 模组知识与缓存成本
+### Mod knowledge and cache cost
 
-不把整个整合包注册表、全部攻略和全部历史每轮塞进提示。按目标检索相关对象、规则、技能和必要工具，保持一段执行期间的工具及知识快照稳定，将实时变化放在其后。角色状态、库存、任务进度和机器条件必须保持新鲜，不能为了缓存命中隐藏关键变化。
+Do not inject entire registries, guides and histories every round. Retrieve relevant objects, rules, skills and tools by goal. Keep an execution segment's tool/knowledge snapshot stable and append live changes afterward. Actor state, inventory, progress and machine conditions must remain fresh; do not hide changes to improve cache hits.
 
-分别记录服务端提示缓存读取与写入、本地技能执行避免的模型调用，以及重试、实验、检索和摘要开销。未暴露缓存用量或价格的端点应标注不可观测，不能将缺失字段解释为实测零成本。决策复用需要核对世界与任务范围、规则/技能版本及行动前提，规则变化时按依赖停止相关复用；这和供应商的提示前缀缓存是不同层次。
+Separately record server cache reads/writes, model calls avoided through local skills, and retry/experiment/retrieval/summary overhead. Mark endpoints without usage/prices unobservable rather than treating missing fields as measured zero cost. Decision reuse checks world/task scope, rule/skill versions and prerequisites, stopping dependent reuse on rule changes. This differs from vendor prefix caching.
 
-主要成本指标为固定任务集合下全部尝试的成本除以成功任务数，同时报告成功率、超时和失败成本。本地推理记录耗时及可获得的资源消耗，模型价格使用对应端点的实际计费或明确标注的估算。所有尝试均失败时报告无成功及总开销，不输出虚假的单位成功成本。不能预先承诺所有端点都有相同缓存命中率或节省比例。
+Primary cost is all attempts' cost divided by successful tasks on a fixed task set, alongside success rate, timeouts and failure cost. Record local inference time/resource use when available and use actual endpoint prices or labeled estimates. If all attempts fail, report no successes and total expenditure without inventing unit-success cost. Uniform hit rates or savings across endpoints cannot be promised.
 
-### v0.6.0 与 v1.0.0 的模组验收
+### v0.6.0 and v1.0.0 mod acceptance goals
 
-| 版本 | 必须覆盖的交付 | 验收范围 |
+| Version | Required delivery | Acceptance scope |
 | --- | --- | --- |
-| v0.6.0 | 通用观察与动作接口覆盖诊断；多条件经验与针对性实验；受支持机制的自动计划修复；版本化经验复用与成本记录 | 在声明支持的代表性真实模组及可控隐藏机制中，分别测试新角色/物品、布局迁移、新机制组合、规则变化与重启后记忆复用 |
-| v1.0.0 | 在明确支持矩阵内持续完成多阶段模组玩法；跨任务和跨模组组合；反例驱动的局部重学；旧任务保持；稳定接口与存档迁移 | 多轮独立的长时间运行、多个整合包/规则配置、资源竞争、中断恢复和模型端点变化；新内容需重新验证，不声明任意模组天然全兼容 |
+| v0.6.0 | Generic observation/action coverage diagnostics; conditional experience and targeted experiments; supported-mechanism plan repair; versioned reuse and cost records | Representative declared real mods and controlled hidden mechanisms: actors/items, layout transfer, new combinations, rule changes and post-restart reuse |
+| v1.0.0 | Sustained multi-stage gameplay within a support matrix; cross-task/mod composition; local counterexample-driven relearning; retention; stable interfaces/save migration | Repeated independent long runs, multiple modpacks/configurations, resource contention, interruption recovery and endpoint changes; new content requires revalidation |
 
-兼容接口能力与自主学习能力应分开报告；允许公开说明辅助的玩法测试、纯交互发现隐藏机制的测试也应分开。适配器覆盖率、读取公开配方后的成功率与从未知规则中学得的收益，不能合并成一个泛化成绩。
+Report interface compatibility separately from autonomous learning; also separate public-description-assisted play from pure hidden-rule discovery. Adapter coverage, public-recipe success and unknown-rule learning gains cannot be combined into one generalization score.
 
-核心实验顺序：先在 A 规则下学习，清空目标世界的资源与进度，仅携带声明的经验产物进入 B 场景；改变布局、对象实例或组合目标；随后修改一项规则测重学代价，再回到 A 测旧任务保持。开发和留出评测按机制族隔离，固定底座模型、观察/动作权限、环境步数、模型调用或 token 预算，并报告多次独立运行与置信区间。
+Core protocol: learn under rules A, reset target-world resources/progress, carry only declared experience into B, change layout/instances/composite goals, modify one rule to measure relearning, then return to A to measure retention. Split development and held-out evaluations by mechanism family. Fix model, observation/action permissions, environment steps and model-call/token budget; report independent repeated runs and confidence intervals.
 
-迁移对照至少包含无历史经验、相关经验、无关经验和打乱经验，并分别关闭预测、关系迁移、技能复用和选择性失效机制。通过这些对照区分真实迁移、模型先验、资源携带与额外计算带来的收益。各阶段还要独立诊断观察和操作覆盖，避免早期接口失败使后续学习能力根本没有受到测试。
+Compare no history, relevant, irrelevant and shuffled experience. Ablate prediction, relational transfer, skill reuse and selective invalidation separately to distinguish transfer from model priors, carried resources and extra compute. Diagnose observation/action coverage at each stage so early interface failures do not leave learning untested.
 
-主要记录首次学会所需有效交互数、留出任务成功率、迁移收益、规则改变后恢复所需交互、返回旧任务后的保持率、危险发生到感知及响应的延迟、服务器耗时、模型调用数、可观测缓存读写和每次成功任务的总成本。新增有效玩法组合只计入经游戏状态验收的方案；重复尝试、文字新颖程度或技能文件数量不能替代创新与能力指标。
+Measure effective interactions to first learning, held-out success, transfer gains, recovery interactions, old-task retention, danger-to-perception/response delay, server time, model calls, observable cache reads/writes and total cost per successful task. Count new gameplay combinations only when game-state acceptance verifies them; repeated attempts, novel wording or skill-file counts are not capability/innovation measures.
 
-## 已实现的闭环
+## Implemented loop
 
-1. 既有探索器冻结动作前基线，通过调度器执行一个受预算和补偿约束的探针。
-2. 只有较新的、与探针对应的支持或反例才进入学习器。执行失败、等待超时、主动取消和无变化状态不变成成功证据。
-3. 独立上下文根据真实目标、规范化动作参数和动作前状态识别。模型填写的上下文名称只是注释，改名不能增加支持数。
-4. `PredictiveLearning` 按机制、工具、非空间参数、谓词、前值、环境指纹与条件签名分开建模。顶层 `x/y/z` 可抽象；具备类型守卫的角色可将运行 ID/UUID 抽象为目标角色。面、槽位、数量、物品产出 ID、单位、维度和嵌套配置保持精确区分。前值由预测键独立约束，不重复写入条件范围，以允许连续状态转换组合。
-5. 结果分布采用分类计数和 0.5 伪计数，并保留未见结果的概率质量。单步期望预测熵下降与最近预测损失的改善量作为探索代理指标。它们不等同于完整因果信息增益。
+1. Freeze the pre-action baseline, then execute a budgeted, compensation-constrained probe through the scheduler.
+2. Admit only newer, correlated support/counterexamples. Execution failures, timeouts, cancellation and unchanged state are not success evidence.
+3. Identify independent contexts from actual targets, normalized arguments and before-state. Caller/model context names are annotations; renaming cannot increase support.
+4. `PredictiveLearning` separates mechanism, tool, non-spatial parameters, predicate, before-value, fingerprint and condition signature. Top-level `x/y/z` can abstract; type-guarded actors can abstract runtime ID/UUID to target actors. Faces, slots, amounts, output item IDs, units, dimensions and nested configuration remain exact. Before-values are constrained by the prediction key, not duplicated in condition scope, allowing sequential transitions.
+5. Outcome distributions use categorical counts and 0.5 pseudocounts, retaining probability for unseen outcomes. Expected single-step entropy reduction and recent prediction-loss improvement are exploration proxies, not full causal information gain. With no experience, all mass is unresolved; zero entropy/information fields mean unestimated, not certain. Only then may recommendation use caller cold-start estimates, without inventing binary outcomes.
+6. Predict from the latest 16 independent contexts per condition, retaining at most 256 historical records. Contradictions raise uncertainty so old evidence cannot suppress changed rules forever.
+7. `AdaptationRuntime` compiles confirmed rules into ordinary skills with named bindings updating action coordinates and effect targets together. Execution still uses `SkillRuntime`, survival priorities and server verification.
+8. Persist predictive evidence with mechanism memory. Format 14 adds conditional experience/recovery quotas. Missing fields use safe defaults; other fingerprints do not inform current predictions; restoration grants no old physical-task ownership/readiness. Context format is 2. Importing v0.5.0 format 1 or older caller-named contexts retains audits, clears predictions, downgrades confirmed rules to zero-support candidates, removes adapted skills and requires new independent support.
+9. Compose reliable transitions into routes of at most six steps/64 expansions, excluding single-observation and review-pending transitions. Rank by steps/probability and suggest without executing. Scope is one observable predicate of one mechanism, not a full-world simulation.
 
-   没有经验时，全部概率质量属于未解析结果，工具明确提示熵与信息价值尚未估计（字段为 0）；不能把它解释为确定性。推荐器在此时才使用调用方的冷启动估计，不凭空生成二元结果空间。
-6. 每个条件只使用最近 16 个独立上下文进行预测，保留至多 256 条历史证据。矛盾会提升不确定性；旧上下文不会无限压制规则变化后的新证据。
-7. 确认的机制继续通过既有 `AdaptationRuntime` 编译为普通技能。新技能使用命名绑定，同时更新动作坐标与后置条件的目标；执行仍通过 `SkillRuntime`、生存优先级和服务器验证。
-8. 预测证据随机制记忆保存。当前记忆封装版本为 14，增加条件经验与恢复配额。旧文件缺少字段时使用安全默认；跨环境指纹的证据不参与当前预测；恢复不持有正在执行的身体任务，也不恢复旧的行动就绪状态。
+## Long plans: achievement history versus current executability
 
-   知识库上下文格式为 2。v0.5.0 的格式 1 尚无完整多条件范围；更早格式只有调用方命名的上下文。导入这些旧格式时保留实验审计、清空预测、确认规则降为候选并清零支持数，移除旧适配技能，需要重新获得物理独立支持。
-9. 符号规划器能把分别学到的可靠状态转换组合为新路线；最多 6 步、64 次状态展开。它排除单次观察和待复核转换，按步数与结果概率排序，返回建议而不执行动作。当前规划范围是同一机制的单个可观察状态谓词，不是完整游戏世界模拟。
+`PlanGraph` is separate from six-step experience search. A declaration permits 64 dependency nodes; prompts roll over four nodes. Ready nodes sort by explicit priority, then longer remaining chains, then declaration order. Chain length assumes unit step duration and is not a gameplay-time prediction.
 
-## 长程计划：成就历史与当前可执行性分开
-
-长程计划沿用 `PlanGraph`，与上述 6 步经验搜索不是同一个长度限制。一次声明至多 64 个依赖节点；滚动提示窗口为 4 个节点。就绪节点先按显式优先级排序，同优先级优先剩余依赖链更长者，平手保留声明顺序。链长是假设每步单位耗时的调度代理，不是实际游戏时间预测。
-
-`todowrite.todos[]` 新增 `prerequisites`，字段与 `goal_conditions` 相同。例如：
+`todowrite.todos[]` adds `prerequisites` using the same fields as `goal_conditions`:
 
 ```json
 {
   "id": "craft",
-  "content": "用已有材料制作目标物品",
+  "content": "Craft the target item from available materials",
   "priority": "medium",
   "status": "pending",
   "depends_on": ["gather"],
@@ -136,63 +132,61 @@ v0.6.0 已加入多谓词条件、类型约束实例迁移和测试专用陌生�
 }
 ```
 
-- `gather` 完成仍作为历史保留。材料后来减少时，`craft` 的当前前提会阻止它被直接派发；模型应补充材料或修复后续图。
-- 事实缺失、过期或置信度不足时，发出 `prerequisite_unknown`，要求观察；有新鲜事实而数值不符时，发出 `prerequisite_changed`。缺少观察不会被当成因果反例。
-- 完整库存扫描会为计划明确关注、但实际不存在的物品发布零数量；未观察的外部容器、机器和实体不据此推断不存在。
-- 动作一旦被接纳，可合法消耗其材料。前提下降不会取消已接纳的执行，也不会抹掉已完成节点。未接纳的模型自报 `in_progress` 不能绕过检查。
-- 同一未满足前提不会随 tick 或无关世界事实变化反复触发模型唤醒；恢复后再次丢失该前提会重新触发。可以先执行独立且就绪的其他分支。
-- 本地身体执行与生存调度继续由既有服务器调度器负责。前提检查约束模型派发的内置身体动作；观察工具与计划修复工具仍可使用。
+- Completed `gather` remains history. Later material loss blocks dispatch of `craft`; replenish or repair the graph suffix.
+- Missing, stale or low-confidence facts emit `prerequisite_unknown`; fresh mismatches emit `prerequisite_changed`. Missing observations are not causal counterexamples.
+- Complete inventory scans publish zero for explicitly tracked absent items, not unobserved external containers, machines or actors.
+- Accepted actions may consume inputs. Falling prerequisites neither cancel admitted execution nor erase completion. Unadmitted model-reported `in_progress` cannot bypass checks.
+- Repeated identical blocks do not wake the model every tick or on unrelated updates. Restoring and losing a prerequisite retriggers; other independent ready branches can run first.
+- Existing server scheduling retains local execution/survival control. Prerequisites constrain model-dispatched physical actions; observation/repair tools remain usable.
 
-v0.6.0 的 `ExperienceRepairPlanner` 从至多 64 条已确认操作中搜索满足当前缺口的修复路径，限制为 8 步、128 次展开。它只模拟声明的效果，忘记可能消耗的输入，保留身份守卫；每一步执行仍需重新观察和验收。它不保证全局最小修复，也不能把任意自然语言成功条件自动编译成谓词。长任务仍应声明 `goal_conditions`，最终成功由顶层观察验收。
+v0.6.0's `ExperienceRepairPlanner` searches at most 64 confirmed operators, eight steps and 128 expansions. It simulates only declared effects, forgets possibly consumed inputs and preserves identity guards. Each executed step still needs observation/acceptance. It does not guarantee globally minimal repair or compile arbitrary natural-language success into predicates. Long tasks should declare `goal_conditions`; top-level observations determine success.
 
-预测器只回答有条件的经验问题。没有数据时返回无经验预测；预测不能作为动作权限，也不能证明某个观察完全由该动作造成。并发外源事件、未建模条件与错误的机制身份仍是需要实机验证的限制。
+Predictions answer conditional experience questions. No data means no empirical prediction; a prediction neither authorizes actions nor proves sole causation. External concurrent events, unmodeled conditions and incorrect mechanism identity remain live-validation limitations.
 
-## 工具入口
+## Tool entry points
 
-现有 `explore_mechanism` 增加以下模式：
+`explore_mechanism` adds:
 
-- `predict`：输入 `subject`、`probe_tool`、`probe_arguments`、`expected_predicate`、`before_value`，返回独立上下文数、结果概率、不确定性、信息价值和复核标记。
-- `plan`：输入机制、状态谓词、当前状态和目标状态，组合已验证转换；`max_steps` 可限制路线长度。缺少当前观察时要求先观察，出现反例的转换不再进入新路线。
-- `curriculum`：对已观察知识缺口给出有限候选；可用 `query` 限定当前目标。该操作不派发身体动作，也不自行启动额外模型请求。
-- `metrics`：查看模型调用、输入、缓存读取、缓存写入、输出和动作终态统计。
+- `predict`: `subject`, `probe_tool`, `probe_arguments`, `expected_predicate`, `before_value`; returns independent contexts, outcome probabilities, uncertainty, information value and review flags.
+- `plan`: mechanism, predicate, current/goal states; compose verified transitions, optionally bounded by `max_steps`. Observe missing current state first; contradicted transitions leave new routes.
+- `curriculum`: bounded candidates from observed gaps, optionally goal-filtered by `query`; no physical dispatch or additional model requests.
+- `metrics`: model calls, inputs, cache reads/writes, outputs and terminal action outcomes.
 
-已有 `propose/recommend/status/abort` 入口保持兼容。`recommend` 在有对应实测证据时使用经验价值；没有数据时保留调用方估计作为冷启动先验。
+`propose/recommend/status/abort` remain compatible. `recommend` uses empirical value when available, otherwise caller estimates as cold-start priors.
 
-`list_learned_skills` 会返回可迁移适配技能的默认 `bindings`。例如：
+`list_learned_skills` returns default `bindings` for transferable adaptation skills:
 
 ```json
 {
-  "skill_name": "从技能查询结果取得的名称",
+  "skill_name": "name returned by the skill query",
   "overrides_json": "{\"bindings\":{\"target_x\":99,\"target_y\":64,\"target_z\":5,\"effect_subject\":\"machine:new\"}}"
 }
 ```
 
-只覆盖技能实际声明的参数；有些探针只有 `x`，不声明 `y/z`。对象发现、目标选择和是否适合迁移仍由现有感知与规划负责。旧版逐步骤参数覆盖仍可用。命名绑定保持 JSON 类型，缺失、循环和错误类型会拒绝启动。
+Override only declared parameters; some probes expose only `x`, not `y/z`. Existing perception/planning still handles discovery, target selection and transfer suitability. Legacy per-step overrides work. Named bindings retain JSON types; missing, cyclic or mistyped bindings reject startup.
 
-## 反应速度与缓存
+## Response speed and caching
 
-内置 Provider 现在通过 `newSession()` 为每个伙伴创建独立传输实例。HTTP 客户端可以复用，Responses 会话和端点回退状态由伙伴独占。既有调用锁仍保护旧扩展；不实现新接口的第三方 Provider 保留原同步行为。已注册实例不再承担所有内置伙伴的 HTTP 串行队列。
+Built-in Providers create independent transports through `newSession()` per companion. HTTP clients may be shared; Responses sessions/endpoint fallback state are companion-owned. Existing locks preserve legacy extension behavior; Providers without the new interface remain synchronous. Registered instances no longer serialize all built-in companion HTTP traffic.
 
-Anthropic 的首条稳定 system 指令与滚动摘要分块，缓存断点留在稳定块；更新摘要不再改写该块。工具定义变化仍会影响缓存前缀。
+Anthropic separates the first stable system instruction from rolling summaries and keeps the breakpoint on the stable block. Summary changes do not rewrite that block; tool changes still affect the prefix.
 
-当前请求契约还声明 `cacheableMessageCount`：它标出持久对话前缀的末尾，实时状态放在其后。Anthropic 在这个末尾增加第二个断点；即使工具结果与后续实时 user 文本被合并到同一条消息，断点仍留在工具结果块上。旧调用方未声明边界时不启用这个额外断点；它不会变成发送给任意 OpenAI 兼容或本地端点的通用请求参数。
+`cacheableMessageCount` declares the durable conversation boundary, with live state afterward. Anthropic adds a second breakpoint there; even if tool results merge with later live user text, it remains on the tool-result block. Legacy callers without a boundary receive no extra breakpoint. This is not a universal parameter sent to arbitrary compatible/local endpoints.
 
-[Anthropic 官方缓存说明](https://platform.claude.com/docs/en/build-with-claude/prompt-caching) 区分明确断点、历史增长、回看窗口、最低 token 门槛与写入成本。本地 HTTP 测试验证了断点和请求结构，不能代替服务端命中率或账单实验。
+[Anthropic caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching) distinguishes breakpoints, history growth, lookback, token minimums and writes. Local HTTP validates request structure, not server hit rates/billing. [OpenAI Prompt Caching](https://developers.openai.com/api/docs/guides/prompt-caching) depends on matching prefixes/settings and may charge for writes. The branch reads `cache_write_tokens` and records reads/writes separately without forcing new controls on unknown relays/local endpoints.
 
-[OpenAI 官方 Prompt Caching](https://developers.openai.com/api/docs/guides/prompt-caching) 说明，缓存依赖匹配的前缀与请求设置，缓存写入也可能计费。本分支补齐 `cache_write_tokens` 的读取，并分别记录读写用量。没有向未知中转或本地端点强制发送新的缓存控制字段。
+`previous_response_id` maintains conversation continuity; [historical inputs remain billable](https://developers.openai.com/api/docs/guides/conversation-state). v0.6.0 separates missing reports from explicit zero, uses reported inputs for observable hit-rate denominators and shows coverage; entirely absent data is `null`. Stable experience references append only on change; live state remains last. Measure actual hits/prices/savings on the target endpoint.
 
-`previous_response_id` 用于连续会话；[历史输入仍参与计费](https://developers.openai.com/api/docs/guides/conversation-state)。v0.6.0 区分缓存字段未上报与明确零值，只用具有读取报告的输入作为可观测命中率分母，并展示报告覆盖率；完全无数据时工具返回 `null`。稳定经验引用仅在内容变化时追加，实时状态仍留在尾部。实际命中率、价格和节省额需要在目标端点测量。
+Count tool queries, async dispatch, success, failure, cancellation and insufficient evidence separately. Duplicate callbacks do not double-count; pending work is not failure. Failed model requests still contribute actual waiting time.
 
-工具查询、异步派发、动作成功、失败、取消和证据不足分开计数。重复回调不重复计账，待执行任务不会被记为失败；失败的模型请求也计入实际等待时间。
+## Validation and next live experiments
 
-## 验证与下一步实机实验
+See [v0.6.0 validation](validation-0.6.0.md), with historical comparisons in [v0.5.0](validation-0.5.0.md), the [2026-11-02 baseline](validation-2026-11-02.md) (136 regressions) and [v0.5.0-alpha.1](validation-0.5.0-alpha.1.md) (156 regressions).
 
-当前版本的结果与发布校验见 [0.6.0 验证记录](validation-0.6.0.md)。历史对照保留在 [0.5.0 验证记录](validation-0.5.0.md)、[2026-11-02 基线记录](validation-2026-11-02.md)（136 项回归）和 [0.5.0-alpha.1 验证记录](validation-0.5.0-alpha.1.md)（156 项回归）。
+Regressions cover location transfer, parameter/before-state/environment isolation, repeated evidence, drift, JSON checkpoints, invalid bindings, legacy overrides, transferred-target acceptance, session isolation, concurrent local HTTP, stable Anthropic cache blocks, cache-write metrics and idempotent terminal outcomes.
 
-自动回归覆盖：不同位置迁移、不同参数/前置状态/环境隔离、重复证据、规则漂移、JSON 检查点、错误绑定拒绝、旧技能覆盖、转移后目标验收、会话隔离、并发本地 HTTP、Anthropic 缓存块稳定性、缓存写入统计及动作终态幂等性。
+Component tests use production code with controlled semantic state/local HTTP. v0.6.0 also runs a test-only unfamiliar mod, native actor/item observations and real data reloads on Minecraft servers. These do not replace external-modpack blind tests or long survival.
 
-组件测试使用生产组件与受控语义状态或本地 HTTP 服务。v0.6.0 另外在真实 Minecraft 服务器运行测试专用陌生模组、原生角色/物品观察与实际数据重载；它们尚不能替代外部整合包盲测或长期生存测试。
+Proposed live experiment: give a companion an unseen processing device without hidden answers, allow observation/experiments/skills, then change location/layout and one rule to test transfer, contradiction detection and relearning. Evaluators may inspect full state; agents receive only agreed observations. Count public-recipe lookup separately from hidden-rule discovery.
 
-建议的实机实验是：给伙伴一个未见过的加工装置，不提供隐藏机制答案；允许它观察、实验、形成技能；随后改变装置位置、布局及一条规则，测试迁移、矛盾检测与重新学习。评估器可读取完整世界状态，执行中的伙伴只得到约定的观察。查询公开注册表配方与发现隐藏机制应分别统计。
-
-对照固定模型、种子、工具权限与预算，分别关闭预测、绑定迁移和学习进展评分。报告多次独立运行的任务完成率、学习所需干预数、迁移成功率、规则改变后的恢复代价、旧任务保持率、危险响应 tick 数、服务器耗时和每次成功任务的总成本。未完成这些实验前，不发布成功率提升或成本下降百分比。
+Fix model, seed, permissions and budgets; independently disable prediction, binding transfer and progress scoring. Report repeated-run completion, learning interventions, transfer, recovery, retention, danger-response ticks, server time and cost per success. Publish no percentage gains or savings before running these experiments.

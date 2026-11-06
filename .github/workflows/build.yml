@@ -40,7 +40,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: mineagent-test-evidence
+          name: craftdroid-test-evidence
           path: |
             fabric/build/gametest-results.xml
             fabric/build/test-results/test/*.xml
@@ -50,13 +50,13 @@ jobs:
       - name: Upload Fabric artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mineagent-fabric
-          path: fabric/build/libs/mineagent-fabric-*.jar
+          name: craftdroid-fabric
+          path: fabric/build/libs/craftdroid-fabric-*.jar
           if-no-files-found: error
 
       - name: Upload experimental NeoForge artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mineagent-neoforge-experimental
-          path: neoforge/build/libs/mineagent-neoforge-*.jar
+          name: craftdroid-neoforge-experimental
+          path: neoforge/build/libs/craftdroid-neoforge-*.jar
           if-no-files-found: error

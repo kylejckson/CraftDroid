@@ -58,9 +58,9 @@ public final class MineAgentClientController {
             new ConcurrentHashMap<>();
 
     private static volatile Consumer<ClientUiActionPayload> uiActionSender =
-            payload -> System.err.println("[MineAgent] Client network sender is not initialized");
+            payload -> System.err.println("[CraftDroid] Client network sender is not initialized");
     private static volatile Consumer<CompanionSetupPayload> companionSetupSender =
-            payload -> System.err.println("[MineAgent] Client setup sender is not initialized");
+            payload -> System.err.println("[CraftDroid] Client setup sender is not initialized");
     private static volatile UUID companionId;
     private static volatile boolean companionSpawned;
     private static CompanionChatScreen chatScreen;
@@ -75,14 +75,14 @@ public final class MineAgentClientController {
      */
     public static void setUiActionSender(Consumer<ClientUiActionPayload> sender) {
         uiActionSender = sender == null
-                ? payload -> System.err.println("[MineAgent] Client network sender is not initialized")
+                ? payload -> System.err.println("[CraftDroid] Client network sender is not initialized")
                 : sender;
     }
 
     /** Install the loader-specific transport for the credential-bearing setup request. */
     public static void setCompanionSetupSender(Consumer<CompanionSetupPayload> sender) {
         companionSetupSender = sender == null
-                ? payload -> System.err.println("[MineAgent] Client setup sender is not initialized")
+                ? payload -> System.err.println("[CraftDroid] Client setup sender is not initialized")
                 : sender;
     }
 
@@ -197,7 +197,7 @@ public final class MineAgentClientController {
                     // Never discard speech just because the dedicated chat
                     // screen is closed; vanilla chat is the non-modal fallback.
                     client.player.displayClientMessage(Component.literal(
-                            "[MineAgent] " + message), false);
+                            "[CraftDroid] " + message), false);
                 }
             }
             case "companion_status" -> parseAndApplyStatus(payload.data());
@@ -278,7 +278,7 @@ public final class MineAgentClientController {
         if (client.getConnection() == null) {
             if (client.player != null) {
                 client.player.displayClientMessage(Component.literal(
-                        "MineAgent is not connected to a server")
+                        "CraftDroid is not connected to a server")
                         .withStyle(ChatFormatting.RED), false);
             }
             return;
@@ -286,7 +286,7 @@ public final class MineAgentClientController {
         try {
             uiActionSender.accept(payload);
         } catch (RuntimeException transportFailure) {
-            System.err.println("[MineAgent] Failed to send UI action '"
+            System.err.println("[CraftDroid] Failed to send UI action '"
                     + payload.action() + "': " + transportFailure.getMessage());
         }
     }
@@ -298,7 +298,7 @@ public final class MineAgentClientController {
         if (client.getConnection() == null) {
             if (client.player != null) {
                 client.player.displayClientMessage(Component.literal(
-                        "MineAgent is not connected to a server")
+                        "CraftDroid is not connected to a server")
                         .withStyle(ChatFormatting.RED), false);
             }
             return;
@@ -306,7 +306,7 @@ public final class MineAgentClientController {
         try {
             companionSetupSender.accept(payload);
         } catch (RuntimeException transportFailure) {
-            System.err.println("[MineAgent] Failed to send companion setup: "
+            System.err.println("[CraftDroid] Failed to send companion setup: "
                     + transportFailure.getMessage());
         }
     }

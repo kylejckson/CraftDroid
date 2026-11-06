@@ -8,7 +8,7 @@ version = rootProject.version
 
 base {
     // NeoForge is released beside Fabric as an explicitly experimental asset.
-    archivesName = 'mineagent-neoforge'
+    archivesName = 'craftdroid-neoforge'
 }
 
 java {
@@ -50,7 +50,7 @@ neoForge {
 
     // ModDev does not infer the active development mod merely from
     // neoforge.mods.toml. Without this declaration resources were visible in
-    // the Mods list, but the class directory was not scanned as MineAgent:
+    // the Mods list, but the class directory was not scanned as CraftDroid:
     // @Mod, key mappings, commands, networking, and engine setup never ran.
     mods {
         mineagent {

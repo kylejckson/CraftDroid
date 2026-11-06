@@ -61,7 +61,7 @@ public final class MLGChain implements TaskChain {
             }
             return PRIORITY;
         } catch (Exception error) {
-            System.err.println("[MineAgent] MLG priority error: " + error.getMessage());
+            System.err.println("[CraftDroid] MLG priority error: " + error.getMessage());
             return Float.NEGATIVE_INFINITY;
         }
     }
@@ -80,7 +80,7 @@ public final class MLGChain implements TaskChain {
                 case RECOVERING_WATER -> recoverWater(sp);
             }
         } catch (Exception error) {
-            System.err.println("[MineAgent] MLG tick error: " + error.getMessage());
+            System.err.println("[CraftDroid] MLG tick error: " + error.getMessage());
             cleanup(sp);
         }
     }

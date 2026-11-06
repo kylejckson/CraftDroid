@@ -40,7 +40,7 @@ import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
 
 /**
- * The MineAgent engine — the central orchestrator that manages all companions,
+ * The CraftDroid engine — the central orchestrator that manages all companions,
  * runs the priority auction, and drives the agent loops.
  *
  * <p>Initialized once at mod load time via {@link #init()}.
@@ -65,7 +65,7 @@ public final class MineAgentEngine {
     /** Maximum companions per owner in a single world. */
     private static final int MAX_COMPANIONS_PER_OWNER = 3;
 
-    /** The loaded configuration for the entire MineAgent system. */
+    /** The loaded configuration for the entire CraftDroid system. */
     private static MineAgentConfig config = MineAgentConfig.DEFAULTS;
 
     /** The config directory (saved so setconfig can persist changes). */
@@ -200,14 +200,14 @@ public final class MineAgentEngine {
         TaskRegistration.registerAll();
 
         initialized = true;
-        System.out.println("[MineAgent] Engine initialized with "
+        System.out.println("[CraftDroid] Engine initialized with "
                 + LLMProviderRegistry.all().size() + " LLM providers, "
                 + BrainChains.entries().size() + " chains, "
                 + ReflexRegistry.all().size() + " reflexes");
     }
 
     /**
-     * Get the loaded MineAgent configuration.
+     * Get the loaded CraftDroid configuration.
      *
      * @return the current configuration (never null)
      */
@@ -223,7 +223,7 @@ public final class MineAgentEngine {
      */
     public static void setWorldDataDir(Path dataDir) {
         worldDataDir = dataDir;
-        System.out.println("[MineAgent] World data directory set to " + dataDir);
+        System.out.println("[CraftDroid] World data directory set to " + dataDir);
     }
 
     /**
@@ -241,14 +241,14 @@ public final class MineAgentEngine {
      */
     public static void restoreCompanions(net.minecraft.server.MinecraftServer server) {
         if (worldDataDir == null) {
-            System.out.println("[MineAgent] No world data directory set, skipping companion restore");
+            System.out.println("[CraftDroid] No world data directory set, skipping companion restore");
             return;
         }
 
         var saved = com.mineagent.engine.entity.CompanionStore.loadAll(worldDataDir);
         if (saved.isEmpty()) return;
 
-        System.out.println("[MineAgent] Restoring " + saved.size() + " companion(s)...");
+        System.out.println("[CraftDroid] Restoring " + saved.size() + " companion(s)...");
 
         // We can't restore companions immediately because the owner's ServerPlayer
         // may not be online yet. We'll restore when the player joins.
@@ -387,7 +387,7 @@ public final class MineAgentEngine {
         } catch (Exception invalidBody) {
             // The companion config/skin can still be restored even if one old
             // or manually edited body snapshot is unusable.
-            System.err.println("[MineAgent] Could not restore body for '"
+            System.err.println("[CraftDroid] Could not restore body for '"
                     + companion.companionName() + "': " + invalidBody.getMessage());
             return false;
         }
@@ -462,7 +462,7 @@ public final class MineAgentEngine {
         discardIncrementalWork();
         SurvivalBuiltin.clear();
         worldDataDir = null;
-        System.out.println("[MineAgent] Engine shut down (companions saved)");
+        System.out.println("[CraftDroid] Engine shut down (companions saved)");
     }
 
     // ── Companion management ───────────────────────────────────────
@@ -523,7 +523,7 @@ public final class MineAgentEngine {
                 model, baseUrl, temperature, reasoningEffort);
         if (invalid != null) {
             if (owner != null) owner.sendSystemMessage(Component.literal(
-                    "§c[MineAgent] Cannot spawn companion: " + invalid));
+                    "§c[CraftDroid] Cannot spawn companion: " + invalid));
             return null;
         }
 
@@ -531,7 +531,7 @@ public final class MineAgentEngine {
         List<UUID> existing = OWNER_TO_ALL_COMPANIONS.getOrDefault(owner.getUUID(), Collections.emptyList());
         if (existing.size() >= MAX_COMPANIONS_PER_OWNER) {
             owner.sendSystemMessage(Component.literal(
-                    "§c[MineAgent] You already have " + MAX_COMPANIONS_PER_OWNER
+                    "§c[CraftDroid] You already have " + MAX_COMPANIONS_PER_OWNER
                             + " companions (the maximum). Remove one first."));
             return null;
         }
@@ -541,7 +541,7 @@ public final class MineAgentEngine {
             CompanionState s = COMPANIONS.get(cid);
             if (s != null && model != null && model.equalsIgnoreCase(s.loop.getModel())) {
                 owner.sendSystemMessage(Component.literal(
-                        "§c[MineAgent] You already have a companion using model '"
+                        "§c[CraftDroid] You already have a companion using model '"
                                 + model + "'. Each companion must use a different model."));
                 return null;
             }
@@ -549,7 +549,7 @@ public final class MineAgentEngine {
             if (s != null && name != null
                     && name.equalsIgnoreCase(s.companion.companionName())) {
                 owner.sendSystemMessage(Component.literal(
-                        "§c[MineAgent] A companion named '" + name
+                        "§c[CraftDroid] A companion named '" + name
                                 + "' already exists. Choose a different name."));
                 return null;
             }
@@ -566,8 +566,8 @@ public final class MineAgentEngine {
             playerName = availableProfileName(owner, name);
         } catch (RuntimeException allocationError) {
             owner.sendSystemMessage(Component.literal(
-                    "§c[MineAgent] Cannot allocate a unique player identity."));
-            System.err.println("[MineAgent] Profile allocation failed: " + allocationError);
+                    "§c[CraftDroid] Cannot allocate a unique player identity."));
+            System.err.println("[CraftDroid] Profile allocation failed: " + allocationError);
             return null;
         }
         GameProfile profile = FakePlayerFactory.createOfflineProfile(playerName);
@@ -588,8 +588,8 @@ public final class MineAgentEngine {
             // undo it or a later real player can be misclassified.
             COMPANION_PLAYER_UUIDS.remove(profile.getId());
             owner.sendSystemMessage(Component.literal(
-                    "§c[MineAgent] Failed to create companion: " + spawnError.getMessage()));
-            System.err.println("[MineAgent] Fake-player creation failed: " + spawnError);
+                    "§c[CraftDroid] Failed to create companion: " + spawnError.getMessage()));
+            System.err.println("[CraftDroid] Fake-player creation failed: " + spawnError);
             return null;
         }
 
@@ -697,7 +697,7 @@ public final class MineAgentEngine {
         // problem 1). The disk record already exists; it is re-persisted later
         // on shutdown/leave/rename/seteffort.
         if (isRestore) {
-            System.out.println("[MineAgent] Companion '" + name + "' restored for "
+            System.out.println("[CraftDroid] Companion '" + name + "' restored for "
                     + owner.getName().getString());
             return companion;
         }
@@ -710,14 +710,14 @@ public final class MineAgentEngine {
         // persistCompanion from there. When no skin is configured, persist now.
         String skinName = config.companion().skinName();
         if (skinName != null && !skinName.isBlank()) {
-            System.out.println("[MineAgent] Loading skin '" + skinName + "' for companion '" + name + "'...");
+            System.out.println("[CraftDroid] Loading skin '" + skinName + "' for companion '" + name + "'...");
             FakePlayerFactory.applySkinAsync(fakePlayer, skinName, () -> persistCompanion(state));
         } else {
-            System.out.println("[MineAgent] Companion '" + name + "' using default Steve/Alex skin");
+            System.out.println("[CraftDroid] Companion '" + name + "' using default Steve/Alex skin");
             persistCompanion(state);
         }
 
-        System.out.println("[MineAgent] Companion '" + name + "' spawned for "
+        System.out.println("[CraftDroid] Companion '" + name + "' spawned for "
                 + owner.getName().getString());
 
         return companion;
@@ -744,9 +744,9 @@ public final class MineAgentEngine {
             }
             COMPANION_PLAYER_UUIDS.remove(profile.getId());
             owner.sendSystemMessage(Component.literal(
-                    "§c[MineAgent] Failed to initialize companion: "
+                    "§c[CraftDroid] Failed to initialize companion: "
                             + initializationError.getMessage()));
-            System.err.println("[MineAgent] Companion initialization failed: "
+            System.err.println("[CraftDroid] Companion initialization failed: "
                     + initializationError);
             return null;
         }
@@ -796,7 +796,7 @@ public final class MineAgentEngine {
                         ? CompanionGameMode.SURVIVAL : null);
         if (gameMode == null) {
             if (owner != null) owner.sendSystemMessage(Component.literal(
-                    "§c[MineAgent] Cannot spawn companion: invalid game mode."));
+                    "§c[CraftDroid] Cannot spawn companion: invalid game mode."));
             return null;
         }
 
@@ -813,7 +813,7 @@ public final class MineAgentEngine {
                 config.survival(), config.pathfinding());
         if (configDirPath != null && !config.save(configDirPath)) {
             owner.sendSystemMessage(Component.literal(
-                    "[MineAgent] Companion created, but the connection settings "
+                    "[CraftDroid] Companion created, but the connection settings "
                             + "could not be saved to disk."));
         }
         return companion;
@@ -935,7 +935,7 @@ public final class MineAgentEngine {
                         state.companion.companionName());
             }
 
-            System.out.println("[MineAgent] Companion despawned: " + companionId
+            System.out.println("[CraftDroid] Companion despawned: " + companionId
                     + (removeFromDisk ? " (removed from disk)" : ""));
         }
     }
@@ -987,7 +987,7 @@ public final class MineAgentEngine {
         if (state.companion.hardcoreDeathLocked()
                 && state.companion.gameMode() != mode) {
             owner.sendSystemMessage(Component.literal(
-                    "§c[MineAgent] This Hardcore companion has permanently died. "
+                    "§c[CraftDroid] This Hardcore companion has permanently died. "
                             + "It cannot change mode or respawn; create a new companion instead."));
             sendCompanionModeToOwner(state);
             return false;
@@ -1127,7 +1127,7 @@ public final class MineAgentEngine {
                     // factory throwing) must NOT crash the entire tick loop —
                     // that would freeze every other companion too. Log and
                     // continue so the server keeps running.
-                    System.err.println("[MineAgent] Failed to create task for "
+                    System.err.println("[CraftDroid] Failed to create task for "
                             + "companion " + pending.player().companionId()
                             + " (record=" + pending.record().getClass().getSimpleName()
                             + "): " + t.getClass().getSimpleName()
@@ -1185,7 +1185,7 @@ public final class MineAgentEngine {
                 } catch (RuntimeException callbackFailure) {
                     failure.addSuppressed(callbackFailure);
                 }
-                System.err.println("[MineAgent] Incremental work failed for companion "
+                System.err.println("[CraftDroid] Incremental work failed for companion "
                         + pending.player().companionId() + ": " + failure);
                 iterator.remove();
             }
@@ -1241,7 +1241,7 @@ public final class MineAgentEngine {
             } catch (Throwable t) {
                 // A single companion's connection tick failure must NOT crash
                 // the entire server tick loop — log and continue.
-                System.err.println("[MineAgent] Connection tick failed for companion "
+                System.err.println("[CraftDroid] Connection tick failed for companion "
                         + state.companion.companionId() + ": "
                         + t.getClass().getSimpleName() + " - " + t.getMessage());
             }
@@ -1251,7 +1251,7 @@ public final class MineAgentEngine {
             // thread and must not inspect live Minecraft collections itself;
             // this one-second, internally throttled feed keeps reasoning
             // grounded after pickups, damage, consumption and other vanilla
-            // changes that did not originate from a MineAgent tool.
+            // changes that did not originate from a CraftDroid tool.
             if (!state.lifecycle.isDead()) {
                 state.loop.onServerStateTick(sp.level().getGameTime());
             }
@@ -1293,7 +1293,7 @@ public final class MineAgentEngine {
         Runnable invalidate = () -> {
             for (CompanionState state : List.copyOf(COMPANIONS.values())) {
                 try { state.loop.onRulesReloaded(); }
-                catch (RuntimeException failure) { System.err.println("[MineAgent] Rule reload reconciliation failed: " + failure.getClass().getSimpleName()); }
+                catch (RuntimeException failure) { System.err.println("[CraftDroid] Rule reload reconciliation failed: " + failure.getClass().getSimpleName()); }
             }
         };
         if (server.isSameThread()) invalidate.run(); else server.execute(invalidate);
@@ -1353,7 +1353,7 @@ public final class MineAgentEngine {
             for (var p : players) {
                 p.stopSleeping();
                 p.sendSystemMessage(Component.literal(
-                        "§e[MineAgent] Good morning! (Night skipped)"));
+                        "§e[CraftDroid] Good morning! (Night skipped)"));
             }
         }
     }
@@ -1387,7 +1387,7 @@ public final class MineAgentEngine {
         }
 
         deadPlayer.sendSystemMessage(Component.literal(
-                "§7[MineAgent] " + moved
+                "§7[CraftDroid] " + moved
                         + " companion(s) sent to your respawn point."));
     }
 
@@ -1409,7 +1409,7 @@ public final class MineAgentEngine {
         COMPANION_MODES.put(companionId, mode);
         CompanionState state = COMPANIONS.get(companionId);
         if (state != null) persistCompanion(state);
-        System.out.println("[MineAgent] Companion mode set to " + mode + " for " + companionId);
+        System.out.println("[CraftDroid] Companion mode set to " + mode + " for " + companionId);
     }
 
     /**
@@ -1437,7 +1437,7 @@ public final class MineAgentEngine {
                 ? "§bFOLLOW §7(Stay close to you)"
                 : "§aFREE §7(Autonomous, can roam)";
         source.sendSuccess(() -> Component.literal(
-                "§6[MineAgent] " + state.companion.companionName() + " → " + modeDesc), false);
+                "§6[CraftDroid] " + state.companion.companionName() + " → " + modeDesc), false);
 
         // If switching to FOLLOW mode and companion is very far, teleport it
         // to a point 3 blocks away from the owner (not on top of the owner)
@@ -1453,10 +1453,10 @@ public final class MineAgentEngine {
             if (differentDimension || distance > 48.0) {
                 if (com.mineagent.engine.entity.SafeTeleport.beside(sp, owner)) {
                     source.sendSuccess(() -> Component.literal(
-                            "§b[MineAgent] Companion was far away — teleported near you!"), false);
+                            "§b[CraftDroid] Companion was far away — teleported near you!"), false);
                 } else {
                     source.sendFailure(Component.literal(
-                            "§c[MineAgent] No safe loaded position exists near you."));
+                            "§c[CraftDroid] No safe loaded position exists near you."));
                 }
             }
         }
@@ -1533,7 +1533,7 @@ public final class MineAgentEngine {
         // Migrate the memory directory so the companion keeps its memories
         state.loop.migrateMemoryStorage(newName);
 
-        System.out.println("[MineAgent] Companion renamed from '" + oldName
+        System.out.println("[CraftDroid] Companion renamed from '" + oldName
                 + "' to '" + newName + "'");
         return true;
     }
@@ -1595,13 +1595,13 @@ public final class MineAgentEngine {
                 }
                 // No matching companion name — inform the player
                 sender.sendSystemMessage(Component.literal(
-                        "§c[MineAgent] No companion named '" + target + "'. Available: "
+                        "§c[CraftDroid] No companion named '" + target + "'. Available: "
                                 + all.stream().map(s -> s.companion.companionName())
                                         .reduce((a, b) -> a + ", " + b).orElse("none")));
                 return;
             }
             // "@name" with no space — treat the whole thing as a message
-            // to the primary companion (e.g. "@去砍树" → primary hears "去砍树")
+            // to the primary companion (e.g. "@gather wood" becomes "gather wood").
             CompanionState primary = all.get(0);
             primary.loop.onOwnerMessage("[" + ownerName + "]: " + trimmed.substring(1));
             return;
@@ -1650,7 +1650,7 @@ public final class MineAgentEngine {
      * Automatically restores their companion if one was saved.
      */
     public static void onPlayerJoin(ServerPlayer player) {
-        System.out.println("[MineAgent] Player joined: " + player.getName().getString());
+        System.out.println("[CraftDroid] Player joined: " + player.getName().getString());
 
         // Check if this player has a saved companion
         if (worldDataDir == null) return;
@@ -1671,7 +1671,7 @@ public final class MineAgentEngine {
                     continue;
                 }
                 // Found a saved companion - restore it
-                System.out.println("[MineAgent] Restoring companion '"
+                System.out.println("[CraftDroid] Restoring companion '"
                         + saved.companionName() + "' for " + player.getName().getString());
 
                 // Restore on the server thread (we should already be on it)
@@ -1729,13 +1729,13 @@ public final class MineAgentEngine {
                         // Refresh for all viewers
                         FakePlayerFactory.refreshPlayerInfo(sp);
 
-                        System.out.println("[MineAgent] Skin restored from cache for '"
+                        System.out.println("[CraftDroid] Skin restored from cache for '"
                                 + saved.companionName() + "'");
                     }
 
                     // Notify the player — only when restore actually succeeded.
                     player.sendSystemMessage(Component.literal(
-                            "§a[MineAgent] Your companion '" + saved.companionName()
+                            "§a[CraftDroid] Your companion '" + saved.companionName()
                                     + "' has been restored!"));
                 }
             }
@@ -1760,7 +1760,7 @@ public final class MineAgentEngine {
                 // Despawn from memory (but keep on disk)
                 despawnCompanion(companionId, false);
             }
-            System.out.println("[MineAgent] " + companionIds.size()
+            System.out.println("[CraftDroid] " + companionIds.size()
                     + " companion(s) saved and despawned for owner leaving: "
                     + player.getName().getString());
         }
@@ -1838,7 +1838,7 @@ public final class MineAgentEngine {
 
                                         if (companion != null) {
                                             source.sendSuccess(() -> Component.literal(
-                                                    "§a[MineAgent] Companion '" + name + "' spawned!"),
+                                                    "§a[CraftDroid] Companion '" + name + "' spawned!"),
                                                     false);
                                         }
                                         return 1;
@@ -1860,7 +1860,7 @@ public final class MineAgentEngine {
 
                                             if (companion != null) {
                                                 source.sendSuccess(() -> Component.literal(
-                                                        "§a[MineAgent] Companion '" + name + "' spawned!"),
+                                                        "§a[CraftDroid] Companion '" + name + "' spawned!"),
                                                         false);
                                             }
                                             return 1;
@@ -1879,10 +1879,10 @@ public final class MineAgentEngine {
                         boolean removed = removeCompanionByOwner(owner.getUUID());
                         if (removed) {
                             source.sendSuccess(() -> Component.literal(
-                                    "§a[MineAgent] Companion removed."), false);
+                                    "§a[CraftDroid] Companion removed."), false);
                         } else {
                             source.sendFailure(Component.literal(
-                                    "§c[MineAgent] You don't have a companion."));
+                                    "§c[CraftDroid] You don't have a companion."));
                         }
                         return removed ? 1 : 0;
                     })
@@ -1895,25 +1895,25 @@ public final class MineAgentEngine {
                         Optional<CompanionState> stateOpt = getCompanionByOwner(owner.getUUID());
                         if (stateOpt.isEmpty()) {
                             source.sendFailure(Component.literal(
-                                    "§c[MineAgent] You don't have a companion."));
+                                    "§c[CraftDroid] You don't have a companion."));
                             return 0;
                         }
                         CompanionState state = stateOpt.get();
                         if (!state.lifecycle.isDead()) {
                             source.sendFailure(Component.literal(
-                                    "§c[MineAgent] Your companion is not dead."));
+                                    "§c[CraftDroid] Your companion is not dead."));
                             return 0;
                         }
                         if (state.companion.hardcoreDeathLocked()
                                 || state.companion.gameMode().isHardcore()) {
                             source.sendFailure(Component.literal(
-                                    "§c[MineAgent] This companion died in Hardcore mode and "
+                                    "§c[CraftDroid] This companion died in Hardcore mode and "
                                             + "cannot respawn. Create a new companion instead."));
                             return 0;
                         }
                         state.lifecycle.onRespawn(state.companion);
                         source.sendSuccess(() -> Component.literal(
-                                "§a[MineAgent] Companion respawned!"), false);
+                                "§a[CraftDroid] Companion respawned!"), false);
                         return 1;
                     })
                 )
@@ -1923,10 +1923,10 @@ public final class MineAgentEngine {
                         var source = ctx.getSource();
                         if (COMPANIONS.isEmpty()) {
                             source.sendSuccess(() -> Component.literal(
-                                    "§7[MineAgent] No active companions."), false);
+                                    "§7[CraftDroid] No active companions."), false);
                             return 0;
                         }
-                        StringBuilder sb = new StringBuilder("§7[MineAgent] Active companions:\n");
+                        StringBuilder sb = new StringBuilder("§7[CraftDroid] Active companions:\n");
                         for (CompanionState state : COMPANIONS.values()) {
                             sb.append("§7  - ").append(state.companion.companionName());
                             sb.append(" (owner: ").append(state.companion.ownerName()).append(")");
@@ -1943,7 +1943,7 @@ public final class MineAgentEngine {
                     .executes(ctx -> {
                         var source = ctx.getSource();
                         var providers = LLMProviderRegistry.all();
-                        StringBuilder sb = new StringBuilder("§6[MineAgent] Available LLM Providers:\n");
+                        StringBuilder sb = new StringBuilder("§6[CraftDroid] Available LLM Providers:\n");
                         for (var p : providers) {
                             sb.append("§e  - ").append(p.providerId())
                               .append("§7 (").append(p.displayName()).append(")§r\n");
@@ -1960,7 +1960,7 @@ public final class MineAgentEngine {
                         // No argument → show all providers and their models
                         var source = ctx.getSource();
                         var providers = LLMProviderRegistry.all();
-                        StringBuilder sb = new StringBuilder("§6[MineAgent] Example Models:\n");
+                        StringBuilder sb = new StringBuilder("§6[CraftDroid] Example Models:\n");
                         for (var p : providers) {
                             sb.append("\n§e").append(p.providerId())
                               .append("§7 (").append(p.displayName()).append("):§r\n");
@@ -1982,14 +1982,14 @@ public final class MineAgentEngine {
                             var providerOpt = LLMProviderRegistry.get(providerId);
                             if (providerOpt.isEmpty()) {
                                 source.sendFailure(Component.literal(
-                                        "§c[MineAgent] Unknown provider: " + providerId));
+                                        "§c[CraftDroid] Unknown provider: " + providerId));
                                 source.sendFailure(Component.literal(
                                         "§7Use §e/mineagent providers§7 to see available providers."));
                                 return 0;
                             }
                             var p = providerOpt.get();
                             StringBuilder sb = new StringBuilder();
-                            sb.append("§6[MineAgent] Example models for §e")
+                            sb.append("§6[CraftDroid] Example models for §e")
                                     .append(p.displayName()).append("§r:\n");
                             var models = p.defaultModels();
                             for (int i = 0; i < models.size(); i++) {
@@ -2007,7 +2007,7 @@ public final class MineAgentEngine {
                     .executes(ctx -> {
                         var source = ctx.getSource();
                         StringBuilder sb = new StringBuilder();
-                        sb.append("§6[MineAgent] Current Configuration:\n");
+                        sb.append("§6[CraftDroid] Current Configuration:\n");
                         sb.append("§eLLM:\n");
                         sb.append("  §7Provider: §f").append(config.llm().provider()).append("\n");
                         sb.append("  §7Model: §f").append(config.llm().model()).append("\n");
@@ -2034,7 +2034,7 @@ public final class MineAgentEngine {
                         Optional<CompanionState> stateOpt = getCompanionByOwner(owner.getUUID());
                         if (stateOpt.isEmpty()) {
                             source.sendFailure(Component.literal(
-                                    "§c[MineAgent] You don't have a companion!"));
+                                    "§c[CraftDroid] You don't have a companion!"));
                             return 0;
                         }
                         CompanionMode newMode = toggleCompanionMode(stateOpt.get().companion.companionId());
@@ -2052,7 +2052,7 @@ public final class MineAgentEngine {
                                 Optional<CompanionState> stateOpt = getCompanionByOwner(owner.getUUID());
                                 if (stateOpt.isEmpty()) {
                                     source.sendFailure(Component.literal(
-                                            "§c[MineAgent] You don't have a companion!"));
+                                            "§c[CraftDroid] You don't have a companion!"));
                                     return 0;
                                 }
                                 CompanionMode newMode = arg1.equalsIgnoreCase("follow")
@@ -2063,7 +2063,7 @@ public final class MineAgentEngine {
                                 Optional<CompanionState> stateOpt = getCompanionByName(owner.getUUID(), arg1);
                                 if (stateOpt.isEmpty()) {
                                     source.sendFailure(Component.literal(
-                                            "§c[MineAgent] No companion named '" + arg1 + "' found."));
+                                            "§c[CraftDroid] No companion named '" + arg1 + "' found."));
                                     return 0;
                                 }
                                 CompanionMode newMode = toggleCompanionMode(stateOpt.get().companion.companionId());
@@ -2081,7 +2081,7 @@ public final class MineAgentEngine {
                                 Optional<CompanionState> stateOpt = getCompanionByName(owner.getUUID(), name);
                                 if (stateOpt.isEmpty()) {
                                     source.sendFailure(Component.literal(
-                                            "§c[MineAgent] No companion named '" + name + "' found."));
+                                            "§c[CraftDroid] No companion named '" + name + "' found."));
                                     return 0;
                                 }
                                 CompanionMode newMode;
@@ -2091,7 +2091,7 @@ public final class MineAgentEngine {
                                     newMode = CompanionMode.FREE;
                                 } else {
                                     source.sendFailure(Component.literal(
-                                            "§c[MineAgent] Invalid mode '" + modeArg + "'. Use follow or free."));
+                                            "§c[CraftDroid] Invalid mode '" + modeArg + "'. Use follow or free."));
                                     return 0;
                                 }
                                 return applyModeChange(source, owner, stateOpt.get(), newMode);
@@ -2108,7 +2108,7 @@ public final class MineAgentEngine {
                         Optional<CompanionState> stateOpt = getCompanionByOwner(owner.getUUID());
                         if (stateOpt.isEmpty()) {
                             source.sendFailure(Component.literal(
-                                    "§c[MineAgent] You don't have a companion!"));
+                                    "§c[CraftDroid] You don't have a companion!"));
                             return 0;
                         }
 
@@ -2122,7 +2122,7 @@ public final class MineAgentEngine {
                         CompanionMode mode = getCompanionMode(stateOpt.get().companion.companionId());
 
                         source.sendSuccess(() -> Component.literal(
-                                "§6[MineAgent] Companion Location:\n"
+                                "§6[CraftDroid] Companion Location:\n"
                                 + "§7  Name: §f" + stateOpt.get().companion.companionName() + "\n"
                                 + "§7  Position: §f" + x + ", " + y + ", " + z + "\n"
                                 + "§7  Dimension: §f" + dim + "\n"
@@ -2141,7 +2141,7 @@ public final class MineAgentEngine {
                         Optional<CompanionState> stateOpt = getCompanionByOwner(owner.getUUID());
                         if (stateOpt.isEmpty()) {
                             source.sendFailure(Component.literal(
-                                    "§c[MineAgent] You don't have a companion!"));
+                                    "§c[CraftDroid] You don't have a companion!"));
                             return 0;
                         }
 
@@ -2149,7 +2149,7 @@ public final class MineAgentEngine {
                         owner.teleportTo(sp.serverLevel(), sp.getX(), sp.getY(), sp.getZ(),
                                 sp.getYRot(), sp.getXRot());
                         source.sendSuccess(() -> Component.literal(
-                                "§a[MineAgent] Teleported to your companion!"), false);
+                                "§a[CraftDroid] Teleported to your companion!"), false);
                         return 1;
                     })
                 )
@@ -2163,7 +2163,7 @@ public final class MineAgentEngine {
                         // guaranteed to be the Minecraft game directory.
                         if (configDirPath != null) config = MineAgentConfig.load(configDirPath);
                         source.sendSuccess(() -> Component.literal(
-                                "§a[MineAgent] Configuration reloaded!"), false);
+                                "§a[CraftDroid] Configuration reloaded!"), false);
                         source.sendSuccess(() -> Component.literal(
                                 "§7Provider: " + config.llm().provider()
                                         + " | Model: " + config.llm().model()), false);
@@ -2181,7 +2181,7 @@ public final class MineAgentEngine {
                             Optional<CompanionState> stateOpt = getCompanionByOwner(owner.getUUID());
                             if (stateOpt.isEmpty()) {
                                 source.sendFailure(Component.literal(
-                                        "§c[MineAgent] You don't have a companion!"));
+                                        "§c[CraftDroid] You don't have a companion!"));
                                 return 0;
                             }
 
@@ -2201,18 +2201,18 @@ public final class MineAgentEngine {
                                         .refreshPlayerInfo(companionPlayer);
                                 persistCompanion(state);
                                 source.sendSuccess(() -> Component.literal(
-                                        "§a[MineAgent] Skin reset to default (" + skinName + ")!"), false);
+                                        "§a[CraftDroid] Skin reset to default (" + skinName + ")!"), false);
                                 return 1;
                             }
 
                             if (!skinName.matches("[A-Za-z0-9_]{1,16}")) {
                                 source.sendFailure(Component.literal(
-                                        "§c[MineAgent] Skin name must be a valid Minecraft username."));
+                                        "§c[CraftDroid] Skin name must be a valid Minecraft username."));
                                 return 0;
                             }
 
                             source.sendSuccess(() -> Component.literal(
-                                    "§7[MineAgent] Loading skin from player '" + skinName + "'..."), false);
+                                    "§7[CraftDroid] Loading skin from player '" + skinName + "'..."), false);
 
                             // Load skin asynchronously
                             com.mineagent.engine.entity.fakeplayer.SkinLoader.loadSkinAsync(skinName, skinOpt -> {
@@ -2223,7 +2223,7 @@ public final class MineAgentEngine {
                                             .filter(current -> current == state).isEmpty()) return;
                                     if (skinOpt.isEmpty()) {
                                         owner.sendSystemMessage(Component.literal(
-                                                "§c[MineAgent] Player '" + skinName
+                                                "§c[CraftDroid] Player '" + skinName
                                                         + "' not found or has no skin."));
                                         return;
                                     }
@@ -2240,7 +2240,7 @@ public final class MineAgentEngine {
                                             .refreshPlayerInfo(companionPlayer);
 
                                     owner.sendSystemMessage(Component.literal(
-                                            "§a[MineAgent] Skin applied from player '" + skinName + "'!"));
+                                            "§a[CraftDroid] Skin applied from player '" + skinName + "'!"));
 
                                     // Persist this exact companion. Looking up
                                     // the owner's primary can update a sibling
@@ -2261,7 +2261,7 @@ public final class MineAgentEngine {
                         Optional<CompanionState> stateOpt = getCompanionByOwner(owner.getUUID());
                         if (stateOpt.isEmpty()) {
                             source.sendFailure(Component.literal(
-                                    "§c[MineAgent] You don't have a companion!"));
+                                    "§c[CraftDroid] You don't have a companion!"));
                             return 0;
                         }
 
@@ -2280,7 +2280,7 @@ public final class MineAgentEngine {
                         persistCompanion(state);
 
                         source.sendSuccess(() -> Component.literal(
-                                "§a[MineAgent] Skin reset to default Steve/Alex!"), false);
+                                "§a[CraftDroid] Skin reset to default Steve/Alex!"), false);
                         return 1;
                     })
                 )
@@ -2314,7 +2314,7 @@ public final class MineAgentEngine {
                                             double t = Double.parseDouble(value);
                                             if (!Double.isFinite(t) || t < 0.0 || t > 2.0) {
                                                 source.sendFailure(Component.literal(
-                                                        "§c[MineAgent] Temperature must be from 0 to 2."));
+                                                        "§c[CraftDroid] Temperature must be from 0 to 2."));
                                                 return 0;
                                             }
                                             llm = new MineAgentConfig.LLMConfig(
@@ -2329,7 +2329,7 @@ public final class MineAgentEngine {
                                                 comp.instantBreak(), comp.creativeReach());
                                         default -> {
                                             source.sendFailure(Component.literal(
-                                                    "§c[MineAgent] Unknown key: " + key));
+                                                    "§c[CraftDroid] Unknown key: " + key));
                                             source.sendFailure(Component.literal(
                                                     "§7Valid: provider, model, apikey, baseurl, temperature, name, skin"));
                                             return 0;
@@ -2337,7 +2337,7 @@ public final class MineAgentEngine {
                                     }
                                 } catch (NumberFormatException e) {
                                     source.sendFailure(Component.literal(
-                                            "§c[MineAgent] Invalid number for " + key + ": " + value));
+                                            "§c[CraftDroid] Invalid number for " + key + ": " + value));
                                     return 0;
                                 }
 
@@ -2351,7 +2351,7 @@ public final class MineAgentEngine {
                                 String displayedValue = key.equals("apikey") || key.equals("api_key")
                                         ? "(hidden)" : value;
                                 source.sendSuccess(() -> Component.literal(
-                                        "§a[MineAgent] Config updated: §f" + key
+                                        "§a[CraftDroid] Config updated: §f" + key
                                                 + "§a = §f" + displayedValue), false);
                                 return 1;
                             })
@@ -2369,7 +2369,7 @@ public final class MineAgentEngine {
                             Optional<CompanionState> stateOpt = getCompanionByOwner(owner.getUUID());
                             if (stateOpt.isEmpty()) {
                                 source.sendFailure(Component.literal(
-                                        "§c[MineAgent] You don't have a companion!"));
+                                        "§c[CraftDroid] You don't have a companion!"));
                                 return 0;
                             }
 
@@ -2384,12 +2384,12 @@ public final class MineAgentEngine {
                             boolean ok = renameCompanion(sp.getUUID(), newName);
                             if (!ok) {
                                 source.sendFailure(Component.literal(
-                                        "§c[MineAgent] Failed to rename companion."));
+                                        "§c[CraftDroid] Failed to rename companion."));
                                 return 0;
                             }
 
                             source.sendSuccess(() -> Component.literal(
-                                    "§a[MineAgent] Companion renamed to '" + newName + "'!"), false);
+                                    "§a[CraftDroid] Companion renamed to '" + newName + "'!"), false);
                             return 1;
                         })
                     )
@@ -2416,7 +2416,7 @@ public final class MineAgentEngine {
                             // Validate effort value
                             if (!List.of("off", "low", "medium", "high", "xhigh", "max").contains(effort)) {
                                 source.sendFailure(Component.literal(
-                                        "§c[MineAgent] Invalid effort. Use: off, low, medium, high, xhigh, max"));
+                                        "§c[CraftDroid] Invalid effort. Use: off, low, medium, high, xhigh, max"));
                                 return 0;
                             }
 
@@ -2425,7 +2425,7 @@ public final class MineAgentEngine {
                                     : getCompanionByOwner(owner.getUUID());
 
                             if (stateOpt.isEmpty()) {
-                                source.sendFailure(Component.literal("§c[MineAgent] Companion not found!"));
+                                source.sendFailure(Component.literal("§c[CraftDroid] Companion not found!"));
                                 return 0;
                             }
 
@@ -2433,7 +2433,7 @@ public final class MineAgentEngine {
                             state.loop.setReasoningEffort(effort);
                             persistCompanion(state);
                             source.sendSuccess(() -> Component.literal(
-                                    "§a[MineAgent] Companion '" + state.companion.companionName()
+                                    "§a[CraftDroid] Companion '" + state.companion.companionName()
                                             + "' thinking effort set to " + effort), false);
                             return 1;
                         })
@@ -2454,7 +2454,7 @@ public final class MineAgentEngine {
         String name = requestedName;
         if (name == null || name.isBlank()) {
             name = rawConfiguredName == null || rawConfiguredName.isBlank()
-                    || "MineAgent".equals(rawConfiguredName)
+                    || "CraftDroid".equals(rawConfiguredName)
                     ? cfgModel : rawConfiguredName;
         }
 
@@ -2464,7 +2464,7 @@ public final class MineAgentEngine {
                 && !List.of("off", "low", "medium", "high", "xhigh", "max")
                         .contains(normalizedEffort)) {
             source.sendFailure(Component.literal(
-                    "§c[MineAgent] Invalid effort. Use: off, low, medium, high, xhigh, max"));
+                    "§c[CraftDroid] Invalid effort. Use: off, low, medium, high, xhigh, max"));
             return 0;
         }
         CompanionEntity companion = spawnCompanion(
@@ -2476,7 +2476,7 @@ public final class MineAgentEngine {
 
         String spawnedName = name;
         source.sendSuccess(() -> Component.literal(
-                "§a[MineAgent] Companion '" + spawnedName + "' spawned!"), false);
+                "§a[CraftDroid] Companion '" + spawnedName + "' spawned!"), false);
         source.sendSuccess(() -> Component.literal(
                 "§7Provider: " + cfgProvider + " | Model: " + cfgModel), false);
         return 1;
@@ -2625,7 +2625,7 @@ public final class MineAgentEngine {
             } catch (NoSuchFieldException ignored) {
                 // Try next name
             } catch (Exception e) {
-                System.err.println("[MineAgent] setTabListDisplay reflection "
+                System.err.println("[CraftDroid] setTabListDisplay reflection "
                         + "for field '" + fname + "' failed: " + e.getMessage());
             }
         }
@@ -2651,19 +2651,19 @@ public final class MineAgentEngine {
                 cls = cls.getSuperclass();
             }
         } catch (Exception e) {
-            System.err.println("[MineAgent] setTabListDisplay field search failed: "
+            System.err.println("[CraftDroid] setTabListDisplay field search failed: "
                     + e.getMessage());
         }
 
         // Strategy 3: All strategies failed — fall back to GameProfile name,
         // which will be truncated to 16 chars by Minecraft protocol.
-        System.err.println("[MineAgent] setTabListDisplay: could not find tab list "
+        System.err.println("[CraftDroid] setTabListDisplay: could not find tab list "
                 + "name field/method. Display name will use GameProfile name (truncated).");
     }
 
     private static void printHelp(CommandSourceStack source) {
         String help = """
-            §6═══════ MineAgent Commands ═══════§r
+            §6═══════ CraftDroid Commands ═══════§r
 
             §e/mineagent quick§7 [name]
               §aQuick spawn using config file (recommended)

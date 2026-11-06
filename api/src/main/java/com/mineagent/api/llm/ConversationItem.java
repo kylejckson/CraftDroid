@@ -7,7 +7,7 @@ import java.util.Objects;
  *
  * <p>The raw JSON field is intentionally opaque.  Responses can return
  * encrypted reasoning and compaction items which must be replayed byte-for-
- * byte but must never be interpreted as user-visible text or MineAgent
+ * byte but must never be interpreted as user-visible text or CraftDroid
  * semantic memory.</p>
  */
 public record ConversationItem(String type, String role, String text,

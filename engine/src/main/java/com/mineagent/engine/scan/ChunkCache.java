@@ -58,7 +58,7 @@ public final class ChunkCache {
             }
             return chunk.getBlockState(pos);
         } catch (Exception e) {
-            System.err.println("[MineAgent] ChunkCache.getBlockState error: " + e.getMessage());
+            System.err.println("[CraftDroid] ChunkCache.getBlockState error: " + e.getMessage());
             return net.minecraft.world.level.block.Blocks.AIR.defaultBlockState();
         }
     }
@@ -89,7 +89,7 @@ public final class ChunkCache {
             if (chunk == null) return null;
             return chunk.getBlockEntity(pos);
         } catch (Exception e) {
-            System.err.println("[MineAgent] ChunkCache.getBlockEntity error: " + e.getMessage());
+            System.err.println("[CraftDroid] ChunkCache.getBlockEntity error: " + e.getMessage());
             return null;
         }
     }

@@ -1,8 +1,16 @@
 # Changelog
 
-All notable changes to MineAgent will be documented in this file. The project follows [Semantic Versioning](https://semver.org/) where practical during initial development.
+All notable changes to CraftDroid will be documented in this file. The project follows [Semantic Versioning](https://semver.org/) where practical during initial development.
 
 ## [Unreleased]
+
+### CraftDroid fork
+
+- Rename public branding, loader metadata, build artifacts and project links to CraftDroid, with credit to the original MineAgent project by bingdongni and contributors.
+- Make English the default chat and interface language; translate documentation, source comments, prompts and generated memory/learning text.
+- Preserve internal `mineagent` IDs, commands, packages and save paths for compatibility, including existing multilingual input handling and regression coverage.
+
+The versioned entries below describe the inherited MineAgent history. Historical validation documents retain original artifact names, hashes and test results.
 
 ## [1.0.0] - 2026-11-03
 

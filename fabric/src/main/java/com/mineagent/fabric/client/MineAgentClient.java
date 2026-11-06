@@ -98,7 +98,7 @@ public final class MineAgentClient implements ClientModInitializer {
             return;
         }
         throw new IllegalStateException(
-                "server did not register MineAgent UI payloads");
+                "server did not register CraftDroid UI payloads");
     }
 
     private static void sendCompanionSetup(CompanionSetupPayload payload) {
@@ -112,6 +112,6 @@ public final class MineAgentClient implements ClientModInitializer {
             return;
         }
         throw new IllegalStateException(
-                "server did not register MineAgent setup payloads");
+                "server did not register CraftDroid setup payloads");
     }
 }

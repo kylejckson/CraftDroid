@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A provider for LLM completions. Implementations translate MineAgent's
+ * A provider for LLM completions. Implementations translate CraftDroid's
  * unified messages and tool schemas to one concrete wire protocol.
  *
  * <p>The registry is intentionally open: built-in adapters cover OpenAI Chat

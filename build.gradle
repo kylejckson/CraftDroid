@@ -152,7 +152,7 @@ tasks.register('verifyGameTests') {
 tasks.register('verifyReleaseArtifacts') {
     dependsOn ':fabric:build', ':neoforge:build', 'verifyGameTests'
     def loaders = ['fabric', 'neoforge']
-    def artifacts = loaders.collect { rootProject.file("${it}/build/libs/mineagent-${it}-${project.version}.jar") }
+    def artifacts = loaders.collect { rootProject.file("${it}/build/libs/craftdroid-${it}-${project.version}.jar") }
     def manifest = layout.buildDirectory.file('release-artifacts.sha256')
     inputs.files(artifacts)
     inputs.property('releaseVersion', project.version.toString())

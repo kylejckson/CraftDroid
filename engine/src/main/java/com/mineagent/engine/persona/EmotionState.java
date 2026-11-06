@@ -1,52 +1,42 @@
 package com.mineagent.engine.persona;
 
 /**
- * PAD 情绪状态机 — Pleasure-Arousal-Dominance 三维情绪模型。
- *
- * <p>灵感来自 SENTIPOLIS (CMU 2026) 的 dual-speed 情绪动力学。
- * 解决 AI "情绪失忆"问题：被骂后下一轮仍然没有"积怨"。
- *
- * <p>三层设计：
- * <ul>
- *   <li><b>快变情绪</b>（秒级）：Pleasure-Arousal-Dominance 三维向量</li>
- *   <li><b>慢变心境</b>（小时级）：心境基调，影响所有快变情绪的基线</li>
- *   <li><b>情绪-记忆耦合</b>：每次事件与情绪标签一起记忆，检索时情绪反作用于解读</li>
- * </ul>
- *
- * <p>情绪影响：
- * <ul>
- *   <li>对话风格（开心→话多，悲伤→话少）</li>
- *   <li>动作选择（高唤醒→快速行动，低唤醒→缓慢）</li>
- *   <li>停顿时长（思考时受情绪影响）</li>
- *   <li>system prompt 注入（让 LLM "感受"到情绪）</li>
- * </ul>
+
+ * Pleasure-Arousal-Dominance emotion state, inspired by SENTIPOLIS (CMU 2026) dual-speed
+
+ * dynamics. Fast emotion varies on a seconds scale; slower mood provides a lasting baseline;
+
+ * event memories carry emotion labels. Context can describe tone, activity and pauses, but prompt
+
+ * guidance keeps rational decisions above emotional coloring.
+
  */
 public class EmotionState {
 
-    // ── 快变情绪 PAD 向量 [-1, 1] ──
-    private float pleasure;  // -1=极度不快, +1=极度愉悦
-    private float arousal;   // -1=平静, +1=高度兴奋/警觉
-    private float dominance; // -1=受控/无力, +1=掌控/自信
+    // Fast PAD vector in [-1,1].
+    private float pleasure;  // -1: extreme displeasure; +1: extreme pleasure.
+    private float arousal;   // -1: calm; +1: highly excited or alert.
+    private float dominance; // -1: controlled or helpless; +1: in control or confident.
 
-    // ── 慢变心境基线 [-0.3, 0.3]（比快变弱，但持久）──
+    // Slow mood baseline in [-0.3,0.3]: weaker but longer lasting.
     private float moodPleasure;
     private float moodArousal;
     private float moodDominance;
 
-    // ── 衰减率 ──
-    /** 快变情绪每 tick 衰减率（向心境基线靠拢）。
-     *  调整说明：从0.04降至0.015，使情绪持续约3秒而非1.25秒。
-     *  这样情绪学习渠道（ImportanceEvaluator.learnFromEmotion）
-     *  有足够时间检测到情绪变化，避免学习机制失效。
-     *  同时保持情绪不会长期影响理性决策。 */
+    // Decay rates.
+    /**
+     * Fast emotion decay per tick toward mood. Reduced from 0.04 to 0.015 so emotions last about
+     * three seconds instead of 1.25, allowing ImportanceEvaluator.learnFromEmotion to detect
+     * changes without prolonged interference with rational decisions.
+     */
     private static final float EMOTION_DECAY = 0.015f;
-    /** 心境每 tick 衰减率（向 0 靠拢）。 */
+    /** Mood decay per tick toward zero. */
     private static final float MOOD_DECAY = 0.001f;
-    /** 心境对快变情绪的拉力强度。 */
+    /** Strength of the mood baseline's pull on fast emotion. */
     private static final float MOOD_PULL = 0.005f;
 
-    // ── 最近情绪标签（用于 prompt 注入）──
-    private String lastEmotionLabel = "平静";
+    // Latest emotion label for prompt injection.
+    private String lastEmotionLabel = "calm";
 
     public EmotionState() {
         this.pleasure = 0;
@@ -58,12 +48,11 @@ public class EmotionState {
     }
 
     /**
-     * 触发一个情绪事件。
-     *
-     * @param eventPleasure  事件带来的愉悦度变化 [-1, 1]
-     * @param eventArousal    事件带来的唤醒度变化 [-1, 1]
-     * @param eventDominance  事件带来的掌控度变化 [-1, 1]
-     * @param intensity       事件强度 [0, 1]（1=极强）
+
+     * Trigger an emotion event with pleasure/arousal/dominance changes in [-1,1] and intensity in
+
+     * [0,1], where one is strongest.
+
      */
     public void triggerEvent(float eventPleasure, float eventArousal,
                               float eventDominance, float intensity) {
@@ -71,7 +60,7 @@ public class EmotionState {
         arousal = clamp(arousal + eventArousal * intensity);
         dominance = clamp(dominance + eventDominance * intensity);
 
-        // 强烈事件也会影响心境
+        // Strong events also affect mood.
         if (intensity > 0.5f) {
             float moodImpact = (intensity - 0.5f) * 0.1f;
             moodPleasure = clampMood(moodPleasure + eventPleasure * moodImpact);
@@ -82,17 +71,14 @@ public class EmotionState {
         updateLabel();
     }
 
-    /**
-     * 每 tick 调用一次，让情绪自然衰减。
-     * 快变情绪向心境基线靠拢，心境向 0 靠拢。
-     */
+    /** Call once per tick: fast emotion approaches mood and mood approaches zero. */
     public void tick() {
-        // 快变情绪向心境基线衰减
+        // Decay fast emotion toward the mood baseline.
         pleasure = approach(pleasure, moodPleasure, EMOTION_DECAY);
         arousal = approach(arousal, moodArousal, EMOTION_DECAY);
         dominance = approach(dominance, moodDominance, EMOTION_DECAY);
 
-        // 心境向 0 衰减（极慢）
+        // Decay mood toward zero very slowly.
         moodPleasure = approach(moodPleasure, 0, MOOD_DECAY);
         moodArousal = approach(moodArousal, 0, MOOD_DECAY);
         moodDominance = approach(moodDominance, 0, MOOD_DECAY);
@@ -101,68 +87,68 @@ public class EmotionState {
     }
 
     /**
-     * 生成供 LLM system prompt 使用的情绪描述。
-     *
-     * <p><b>设计原则：情绪 < 理性</b>
-     * 情绪只作为上下文线索注入，让 LLM 知道"当前角色处于什么情绪状态"，
-     * 但<b>不</b>指令 LLM 改变行为方式（如"话多一点""动作快一点"）。
-     * LLM 应基于理性分析做决策，情绪只影响语气和用词色彩，
-     * 不影响决策本身的合理性。
+
+     * Describe emotion in the LLM system prompt. Rationality takes priority: expose the current
+
+     * state as context without instructions to speak more or act faster. Emotion affects tone and
+
+     * word choice, not the soundness of decisions.
+
      */
     public String toPromptString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("## 你现在的情绪\n");
-        sb.append(String.format("当前情绪: %s (愉悦%.0f%% | 活跃%.0f%% | 自信%.0f%%)\n",
+        sb.append("## Your current emotion\n");
+        sb.append(String.format("Current emotion: %s (pleasure %.0f%% | arousal %.0f%% | confidence %.0f%%)\n",
                 lastEmotionLabel,
                 (pleasure + 1) * 50, (arousal + 1) * 50, (dominance + 1) * 50));
-        // 只描述情绪状态，不指令行为
-        // 理性优先原则：情绪只影响语气，不影响决策
-        sb.append("注意：情绪只影响你的语气和用词，");
-        sb.append("不影响你的决策逻辑。");
-        sb.append("无论情绪如何，始终基于理性分析做最优决策。\n");
+        // Describe the emotion without prescribing behavior.
+        // Rationality first: emotion affects tone, not decisions.
+        sb.append("Note: emotion affects only your tone and wording, ");
+        sb.append("not your decision logic. ");
+        sb.append("Regardless of emotion, always make the best decision through rational analysis.\n");
         return sb.toString();
     }
 
-    // ── 预定义情绪事件 ──
-    // 强度已降低（约为原值的60%），确保情绪不会过强影响理性。
-    // 设计原则：情绪是调味料，不是主菜。
+    // Predefined emotion events.
+    // Intensities are reduced to about 60% of their former values to avoid overwhelming rationality.
+    // Emotion should add flavor rather than dominate behavior.
 
-    /** 被怪物攻击 */
+    /** Attacked by a monster. */
     public void onAttacked() {
         triggerEvent(-0.4f, 0.5f, -0.3f, 0.5f);
     }
 
-    /** 看到危险 */
+    /** Danger spotted. */
     public void onSeeDanger() {
         triggerEvent(-0.2f, 0.4f, -0.1f, 0.3f);
     }
 
-    /** 找到珍贵资源（钻石等） */
+    /** Valuable resource found, such as diamonds. */
     public void onFindTreasure() {
         triggerEvent(0.5f, 0.3f, 0.2f, 0.4f);
     }
 
-    /** 完成任务 */
+    /** Task completed. */
     public void onTaskComplete() {
         triggerEvent(0.3f, 0.1f, 0.2f, 0.3f);
     }
 
-    /** 被玩家夸奖 */
+    /** Praised by the player. */
     public void onPraised() {
         triggerEvent(0.4f, 0.2f, 0.2f, 0.4f);
     }
 
-    /** 被玩家批评 */
+    /** Criticized by the player. */
     public void onScolded() {
         triggerEvent(-0.3f, 0.1f, -0.2f, 0.3f);
     }
 
-    /** 任务失败 */
+    /** Task failed. */
     public void onTaskFailed() {
         triggerEvent(-0.2f, 0.2f, -0.2f, 0.3f);
     }
 
-    /** 玩家受伤 */
+    /** Player hurt. */
     public void onOwnerHurt() {
         triggerEvent(-0.2f, 0.4f, -0.2f, 0.3f);
     }
@@ -174,20 +160,20 @@ public class EmotionState {
     public float dominance() { return dominance; }
     public String label() { return lastEmotionLabel; }
 
-    // ── 内部方法 ──
+    // Internal helpers.
 
     private void updateLabel() {
-        // 基于 PAD 值映射到语义情绪标签
-        if (pleasure > 0.5f && arousal > 0.3f) lastEmotionLabel = "兴奋";
-        else if (pleasure > 0.5f && arousal < -0.2f) lastEmotionLabel = "满足";
-        else if (pleasure > 0.3f) lastEmotionLabel = "开心";
-        else if (pleasure < -0.5f && arousal > 0.5f) lastEmotionLabel = "愤怒";
-        else if (pleasure < -0.5f && arousal < -0.2f) lastEmotionLabel = "沮丧";
-        else if (pleasure < -0.3f && arousal > 0.4f) lastEmotionLabel = "害怕";
-        else if (pleasure < -0.3f) lastEmotionLabel = "不快";
-        else if (arousal > 0.5f) lastEmotionLabel = "警觉";
-        else if (arousal < -0.3f) lastEmotionLabel = "平静";
-        else lastEmotionLabel = "平静";
+        // Map PAD values to semantic emotion labels.
+        if (pleasure > 0.5f && arousal > 0.3f) lastEmotionLabel = "excited";
+        else if (pleasure > 0.5f && arousal < -0.2f) lastEmotionLabel = "content";
+        else if (pleasure > 0.3f) lastEmotionLabel = "happy";
+        else if (pleasure < -0.5f && arousal > 0.5f) lastEmotionLabel = "angry";
+        else if (pleasure < -0.5f && arousal < -0.2f) lastEmotionLabel = "discouraged";
+        else if (pleasure < -0.3f && arousal > 0.4f) lastEmotionLabel = "afraid";
+        else if (pleasure < -0.3f) lastEmotionLabel = "unhappy";
+        else if (arousal > 0.5f) lastEmotionLabel = "alert";
+        else if (arousal < -0.3f) lastEmotionLabel = "calm";
+        else lastEmotionLabel = "calm";
     }
 
     private static float approach(float current, float target, float rate) {

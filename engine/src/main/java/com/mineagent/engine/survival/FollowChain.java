@@ -78,7 +78,7 @@ public final class FollowChain implements TaskChain {
             return distance > FOLLOW_START_DISTANCE
                     ? PRIORITY : Float.NEGATIVE_INFINITY;
         } catch (Exception error) {
-            System.err.println("[MineAgent] Follow priority error: " + error.getMessage());
+            System.err.println("[CraftDroid] Follow priority error: " + error.getMessage());
             return Float.NEGATIVE_INFINITY;
         }
     }
@@ -135,7 +135,7 @@ public final class FollowChain implements TaskChain {
             }
             nav.tick();
         } catch (Exception error) {
-            System.err.println("[MineAgent] Follow tick error: " + error.getMessage());
+            System.err.println("[CraftDroid] Follow tick error: " + error.getMessage());
             failureCooldown = FAILURE_COOLDOWN_TICKS;
             stopFollowing();
         }

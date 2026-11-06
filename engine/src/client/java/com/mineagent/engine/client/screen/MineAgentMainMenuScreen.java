@@ -25,7 +25,7 @@ public class MineAgentMainMenuScreen extends Screen {
     private Button removeButton;
 
     public MineAgentMainMenuScreen() {
-        super(Component.literal("MineAgent"));
+        super(Component.literal("CraftDroid"));
     }
 
     @Override

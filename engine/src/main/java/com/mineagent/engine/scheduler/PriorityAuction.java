@@ -63,7 +63,7 @@ public class PriorityAuction {
                     winner = chain;
                 }
             } catch (Exception error) {
-                System.err.println("[MineAgent] Chain " + safeChainName(chain)
+                System.err.println("[CraftDroid] Chain " + safeChainName(chain)
                         + " priority error: " + error.getMessage());
             }
         }
@@ -94,7 +94,7 @@ public class PriorityAuction {
             try {
                 currentWinner.onInterrupt(companion);
             } catch (Exception error) {
-                System.err.println("[MineAgent] Chain interrupt error: " + error.getMessage());
+                System.err.println("[CraftDroid] Chain interrupt error: " + error.getMessage());
             }
         }
 
@@ -103,7 +103,7 @@ public class PriorityAuction {
             try {
                 winner.tick(companion);
             } catch (Exception error) {
-                System.err.println("[MineAgent] Chain " + safeChainName(winner)
+                System.err.println("[CraftDroid] Chain " + safeChainName(winner)
                         + " tick error: " + error.getMessage());
                 try {
                     winner.onInterrupt(companion);
@@ -133,7 +133,7 @@ public class PriorityAuction {
                 publishProgress(false);
                 if (state != TaskState.RUNNING) finishCurrentTask(state, null);
             } catch (Exception error) {
-                System.err.println("[MineAgent] Task tick error: " + error.getMessage());
+                System.err.println("[CraftDroid] Task tick error: " + error.getMessage());
                 finishCurrentTask(TaskState.FAILED, error);
             }
         } else {
@@ -148,7 +148,7 @@ public class PriorityAuction {
                     idle.reset();
                 }
             } catch (Exception error) {
-                System.err.println("[MineAgent] Idle/reflex error: " + error.getMessage());
+                System.err.println("[CraftDroid] Idle/reflex error: " + error.getMessage());
             }
         }
 
@@ -237,7 +237,7 @@ public class PriorityAuction {
         try {
             task.interrupt();
         } catch (Exception cleanupError) {
-            System.err.println("[MineAgent] Task cleanup error: " + cleanupError.getMessage());
+            System.err.println("[CraftDroid] Task cleanup error: " + cleanupError.getMessage());
         }
 
         long now = gameTime();
@@ -285,7 +285,7 @@ public class PriorityAuction {
                 Math.max(0L, taskPausedAtTick - taskStartGameTick), snapshot);
         loop.onTaskProgress(currentTask.record().toolCallId(), TaskState.PAUSED,
                 snapshot, reason, taskPausedAtTick);
-        System.out.println("[MineAgent] Body task "
+        System.out.println("[CraftDroid] Body task "
                 + currentTask.record().toolCallId() + " paused for survival chain "
                 + safeChainName(winner));
         pushTaskUpdate(reason);
@@ -429,7 +429,7 @@ public class PriorityAuction {
                             .ifPresent(item -> pickup.nudgeToward(companion, item));
                 }
             } catch (Exception error) {
-                System.err.println("[MineAgent] Reflex " + reflex.id()
+                System.err.println("[CraftDroid] Reflex " + reflex.id()
                         + " tick error: " + error.getMessage());
             }
         }

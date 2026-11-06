@@ -39,9 +39,9 @@ class LayeredMemoryTest {
     @Test
     void shortChineseQueriesStillMatchHanNgrams() {
         LayeredMemory memory = new LayeredMemory();
-        memory.remember(LayeredMemory.Tier.EPISODIC, "工作台位置", "工作台在出生点北侧",
+        memory.remember(LayeredMemory.Tier.EPISODIC, "\u5de5\u4f5c\u53f0\u4f4d\u7f6e", "\u5de5\u4f5c\u53f0\u5728\u51fa\u751f\u70b9\u5317\u4fa7",
                 "scan", 0.9, 10, 1_000, "vanilla", "overworld");
-        assertFalse(memory.recall("工作台", 11, 100).isEmpty());
+        assertFalse(memory.recall("\u5de5\u4f5c\u53f0", 11, 100).isEmpty());
     }
 
     @Test

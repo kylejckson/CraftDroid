@@ -1,15 +1,8 @@
-MineAgent @VERSION@ targets Minecraft 1.21.1 and Java 21.
+CraftDroid @VERSION@ targets Minecraft 1.21.1 and Java 21.
 
-## 更新摘要
+Forked from [MineAgent](https://github.com/bingdongni/MineAgent).
 
-- 在固定的真实模组环境中验证条件学习、精确补偿、跨任务迁移、JSON/运行时恢复及双伙伴物品交接。
-- 保留有界规则历史和任务时间线，召回不增加证据；反例、数据重载与环境变化仍撤销执行资格。
-- 新增公开物品端口操作，绑定面、维度、目标和携带输入；陌生菜单支持公开布局与只读槽位接收检查。
-- 计划修复先筛选相关算子再应用预算，保留已完成历史、原始约束与最终目标条件。
-- 团队任务使用前驱、资源租约和新鲜事实验收；队友经验只作为零本地支持的候选。
-- 已知官方模型的显式缓存边界落在耐久前缀上，未知中转、本地端点与其他协议保持兼容；不发起额外预热调用。
-
-[设计与使用](https://github.com/bingdongni/MineAgent/blob/v@VERSION@/docs/research/lifelong-learning-1.0.0.md) · [验证记录](https://github.com/bingdongni/MineAgent/blob/v@VERSION@/docs/research/validation-1.0.0.md) · [Changelog](https://github.com/bingdongni/MineAgent/blob/v@VERSION@/CHANGELOG.md)
+[Design and usage](https://github.com/kylejckson/CraftDroid/blob/v@VERSION@/docs/research/lifelong-learning-1.0.0.md) · [Historical upstream validation](https://github.com/kylejckson/CraftDroid/blob/v@VERSION@/docs/research/validation-1.0.0.md) · [Changelog](https://github.com/kylejckson/CraftDroid/blob/v@VERSION@/CHANGELOG.md)
 
 ## Changes
 
@@ -27,15 +20,15 @@ Memory envelopes advance to version 15. Old records remain readable, but missing
 
 ## Validation and scope
 
-Release gates run component regressions, five isolated native baseline scenarios, and storage, industry and combined real-mod environments. Both loader artifacts require correct metadata, required production classes, exclusion of test/third-party classes and SHA-256 checksums. Real-mod dependencies remain test-only downloads; they are not redistributed inside MineAgent.
+Release gates run component regressions, five isolated native baseline scenarios, and storage, industry and combined real-mod environments. Both loader artifacts require correct metadata, required production classes, exclusion of test/third-party classes and SHA-256 checksums. Real-mod dependencies remain test-only downloads; they are not redistributed inside CraftDroid.
 
 These are production-component and native-server engineering tests with paused model deliberation. They do not establish autonomous model discovery success rates, arbitrary modpack compatibility, AGI, zero defects or monetary savings. No paid model evaluation was performed. Fabric is supported; NeoForge remains experimental and has not undergone the same real-mod runtime matrix.
 
 ## Downloads
 
-- mineagent-fabric-@VERSION@.jar: Minecraft 1.21.1, Java 21, Fabric Loader 0.20.1 or later and matching Fabric API.
-- mineagent-neoforge-@VERSION@.jar: experimental build for Minecraft 1.21.1 and NeoForge 21.1.x.
-- mineagent-source-@VERSION@.zip and mineagent-source-@VERSION@.tar.gz: complete tracked source, including wrapper, tests, dependency lock and documentation.
+- craftdroid-fabric-@VERSION@.jar: Minecraft 1.21.1, Java 21, Fabric Loader 0.20.1 or later and matching Fabric API.
+- craftdroid-neoforge-@VERSION@.jar: experimental build for Minecraft 1.21.1 and NeoForge 21.1.x.
+- craftdroid-source-@VERSION@.zip and craftdroid-source-@VERSION@.tar.gz: complete tracked source, including wrapper, tests, dependency lock and documentation.
 - release-notes.md: these notes plus source commit and CI provenance.
 - release-artifacts.sha256: checksums for both JARs, source archives and release notes. CI builds may differ from local artifacts; verify against the manifest accompanying the actual download.
 

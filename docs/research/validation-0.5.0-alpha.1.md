@@ -1,53 +1,53 @@
-# v0.5.0-alpha.1 开发构建验证记录
+# v0.5.0-alpha.1 development build validation
 
-验证日期：2026-11-02（北京时间）。功能版本目标为 v0.5.0；本记录描述本地 `codex/adaptive-learning-runtime` 工作区，基于 `701250a950154667212d3ae1be3b3197e9ce9470` 开发，尚未对应新的远端发布。研究、工具用法与边界见[持续学习说明](continual-learning.md)。
+Validation date: 2026-11-02 (Beijing time). The feature target is v0.5.0. This record describes the local `codex/adaptive-learning-runtime` workspace, developed from `701250a950154667212d3ae1be3b3197e9ce9470`, before a new remote release. See the [continual-learning design](continual-learning.md) for research, tool usage and limitations.
 
-## 最终结果
+## Final results
 
-- Temurin JDK / javac 21.0.13+9，Gradle Wrapper 8.10.2，Windows。
-- 从干净构建目录编译 Fabric 与 NeoForge，均成功打包。
-- Fabric 执行共享组件测试：33 个套件、156 项测试，失败 0、错误 0、跳过 0。相较上一轮增加 20 项测试；另一个输入边界测试内覆盖了 12 个真实工具入口案例。
-- NeoForge 没有独立测试源；对它的验证是生产源码编译、打包与产物检查，不是完整游戏运行。
-- `git diff --check` 通过。
+- Windows, Temurin JDK / javac 21.0.13+9, Gradle Wrapper 8.10.2.
+- Fabric and NeoForge compiled and packaged successfully from clean output directories.
+- Shared-component tests under Fabric: 33 suites, 156 tests, zero failures, errors or skips. This adds 20 tests over the previous run; an input-boundary test also covers 12 real tool entry cases.
+- NeoForge has no independent test sources. Its production compilation, packaging and artifacts were checked, not complete gameplay.
+- `git diff --check` passed.
 
-最终执行命令：
+Final command:
 
 ```powershell
 .\gradlew.bat --no-daemon clean verifyReleaseTag prepareReleaseNotes verifyReleaseArtifacts '-Prelease_tag=v0.5.0-alpha.1'
 ```
 
-这条命令通过 `verifyReleaseArtifacts` 的依赖执行两个加载器的 `build`，包含 Fabric 测试。
+The dependencies of `verifyReleaseArtifacts` run both loaders' `build` tasks, including Fabric tests.
 
-## 新增验证范围
+## Added coverage
 
-| 范围 | 实际检查 |
+| Area | Checks performed |
 | --- | --- |
-| 长程前提 | 区分未知、反例与满足；模型自报运行中不能绕过；材料消耗不抹掉已接纳执行和完成历史 |
-| 后续修复 | 保留已完成节点，加入补充材料节点，恢复依赖后继续；独立就绪分支可以先执行 |
-| 调度与持久化 | 显式优先级、单位耗时关键依赖链、过期观察、检查点不恢复旧就绪权限、新目标不借用旧证据、空白 ID 不分裂绑定 |
-| 32 步受控场景 | 第 9 步之后导入检查点，第 17 步之前资源丢失；连续 50 次相同阻塞检查不重复发出修复信号；恢复材料后完成，每步只执行一次 |
-| 事实与参数 | 完整库存观察为被关注的缺失物品提供零数量；未知外部对象不推断不存在；非法和非有限数字返回错误，避免自动拆箱空指针 |
-| 缓存协议 | 明确持久历史边界；Anthropic 断点停在工具结果上，合并后的实时 user 块仍不进入该缓存前缀；旧调用方默认不启用额外断点 |
+| Long-horizon prerequisites | Distinguish unknown, contradicted and satisfied conditions; a model's self-reported running state cannot bypass them; material consumption does not erase accepted execution or completed history |
+| Suffix repair | Preserve completed nodes, add material-replenishment nodes and resume after restoring dependencies; independent ready branches can execute first |
+| Scheduling and persistence | Explicit priorities; unit-duration critical dependency paths; expired observations; checkpoints do not restore old readiness authority; new targets cannot borrow old evidence; blank IDs cannot split bindings |
+| Controlled 32-step scenario | Import a checkpoint after step 9; lose resources before step 17; 50 identical blocked checks produce no duplicate repair signals; restoring materials allows completion, with each step executing once |
+| Facts and parameters | Complete inventory observations provide zero counts for tracked missing items; unknown external objects are not assumed absent; invalid or non-finite numbers return errors instead of null-unboxing exceptions |
+| Cache protocol | Explicit durable-history boundaries; Anthropic breakpoints stop at tool results, excluding merged live user blocks; legacy callers do not enable extra breakpoints by default |
 
-受控场景使用生产规划器与语义状态接口，不是模型自主生成并执行的 Minecraft 实机通关。HTTP 测试只连接本地测试服务器，不连接收费模型端点。
+Controlled scenarios use production planners and semantic-state interfaces, not autonomous model-generated Minecraft completion. HTTP tests connect only to local test servers, not paid model endpoints.
 
-## 发布一致性检查
+## Release consistency checks
 
-- `gradle.properties` 的版本、标签参数、生成的发布说明、精确 JAR 名称以及包内加载器版本相同。
-- 向 `verifyReleaseTag` 传入 `v0.4.0` 时，任务按预期失败，要求 `v0.5.0-alpha.1`。没有创建或修改 Git 标签。
-- 生成的说明不残留 `@VERSION@` 或旧的 `0.3.6` 文案。
-- 两个 JAR 都包含 API Provider 接口、经验预测器、长程规划器、技能绑定器、许可证及对应加载器元数据。
-- GitHub 工作流采用同一组校验任务，并按已核对的版本选择上传文件；工作流本身未在 GitHub Actions 上执行。
+- The version in `gradle.properties`, tag argument, generated release notes, exact JAR names and embedded loader versions agree.
+- Passing `v0.4.0` to `verifyReleaseTag` fails as expected and requires `v0.5.0-alpha.1`. No Git tags were created or changed.
+- Generated notes contain neither `@VERSION@` nor stale `0.3.6` copy.
+- Both JARs contain the API Provider interface, experience predictor, long-horizon planner, skill binder, license and corresponding loader metadata.
+- GitHub workflows use the same validation tasks and select checked version-specific upload files. The workflow itself was not run on GitHub Actions in this local validation.
 
-| 产物 | SHA-256 |
+| Artifact | SHA-256 |
 | --- | --- |
 | `fabric/build/libs/mineagent-fabric-0.5.0-alpha.1.jar` | `1b256cc47187eea58b08d4d376ca17327fc5f44c57c10630259ba46c9ad40cee` |
 | `neoforge/build/libs/mineagent-neoforge-0.5.0-alpha.1.jar` | `44355b7e990bfd0445a3361b7fa3e1f79469d932afccfc9265cfac09278ee834` |
 
-生成的校验清单位于 `build/release-artifacts.sha256`，发布说明位于 `build/release-notes.md`。这些是当前本地构建的哈希，不表示跨平台构建必然得到相同字节。
+The generated checksum manifest is `build/release-artifacts.sha256`; release notes are `build/release-notes.md`. These hashes identify this local build and do not promise identical bytes across platforms.
 
-## 验证边界
+## Validation limits
 
-当前没有真实 Minecraft 长期运行、未知模组盲测、跨项目公平比较、视觉控制或服务端缓存账单实验。本记录不证明绝对零缺陷、AGI、实际命中率提升或成本下降百分比。步骤完成仍需执行器证据，长任务应声明顶层 `goal_conditions`；任意自然语言成功条件尚不能自动转换为完整的可观察验收。
+No long-duration Minecraft runtime, unfamiliar-mod blind test, fair cross-project comparison, visual control or server-cache billing experiment was performed. This record does not prove zero defects, AGI, actual hit-rate improvements or a percentage cost reduction. Steps still require executor evidence; long tasks should declare top-level `goal_conditions`. Arbitrary natural-language success criteria cannot yet be converted automatically into complete observable acceptance checks.
 
-升级会将记忆封装格式推进到 13。旧步骤没有 `prerequisites` 时维持原行为；旧机制规则若只有调用方命名上下文，则需重新取得物理独立支持才能自动复用。新格式尚不承诺由旧版引擎读取。
+The upgrade advances the memory envelope to format 13. Old steps without `prerequisites` retain their behavior. Old mechanism rules supported only by caller-named contexts require fresh physically independent support before automatic reuse. New data is not guaranteed readable by older engines.

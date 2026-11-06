@@ -54,21 +54,21 @@ public class GeminiProvider implements LLMProvider {
     @Override
     public List<String> defaultModels() {
         return List.of(
-                // Gemini 3.6 Flash (2026年7月21日最新发布，更高效token利用率)
+                // Gemini 3.6 Flash (released July 21, 2026; more efficient token use).
                 "gemini-3.6-flash",
-                // Gemini 3.5 Flash / Flash-Lite (2026年5月，1M上下文)
+                // Gemini 3.5 Flash / Flash-Lite (May 2026; 1M context).
                 "gemini-3.5-flash", "gemini-3.5-flash-lite",
-                // Gemini 3.1 系列
+                // Gemini 3.1 family.
                 "gemini-3.1-pro", "gemini-3.1-flash",
                 "gemini-3.1-flash-lite",
-                // Gemini 3 系列
+                // Gemini 3 family.
                 "gemini-3-flash", "gemini-3-pro",
-                // Gemini 2.5 系列
+                // Gemini 2.5 family.
                 "gemini-2.5-pro", "gemini-2.5-flash",
                 "gemini-2.5-flash-lite",
-                // Gemini 2.0 系列
+                // Gemini 2.0 family.
                 "gemini-2.0-flash", "gemini-2.0-flash-lite",
-                // Gemini 1.5 系列
+                // Gemini 1.5 family.
                 "gemini-1.5-pro", "gemini-1.5-flash"
         );
     }
@@ -151,7 +151,7 @@ public class GeminiProvider implements LLMProvider {
                 if ("tool".equals(msg.role()) && msg.toolCallId() != null) {
                     String funcName = toolCallIdToName.get(msg.toolCallId());
                     if (funcName == null) {
-                        System.err.println("[MineAgent] Skipping orphan Gemini tool result id="
+                        System.err.println("[CraftDroid] Skipping orphan Gemini tool result id="
                                 + msg.toolCallId());
                         continue;
                     }

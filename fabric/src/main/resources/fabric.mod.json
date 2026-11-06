@@ -2,15 +2,16 @@
   "schemaVersion": 1,
   "id": "mineagent",
   "version": "${version}",
-  "name": "MineAgent",
-  "description": "AI-powered Minecraft companions that mine, build, fight, and explore alongside you.",
+  "name": "CraftDroid",
+  "description": "AI-powered Minecraft companions that mine, build, fight, and explore alongside you. CraftDroid is forked from MineAgent.",
   "authors": [
-    "bingdongni"
+    "kylejckson (CraftDroid fork)",
+    "bingdongni (MineAgent upstream)"
   ],
   "contact": {
-    "homepage": "https://github.com/bingdongni/MineAgent",
-    "sources": "https://github.com/bingdongni/MineAgent",
-    "issues": "https://github.com/bingdongni/MineAgent/issues"
+    "homepage": "https://github.com/kylejckson/CraftDroid",
+    "sources": "https://github.com/kylejckson/CraftDroid",
+    "issues": "https://github.com/kylejckson/CraftDroid/issues"
   },
   "license": "LGPL-3.0-only",
   "environment": "*",

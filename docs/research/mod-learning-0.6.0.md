@@ -1,39 +1,39 @@
-# v0.6.0：陌生内容学习的实现与使用
+# v0.6.0: Implementation and use of unfamiliar-content learning
 
-本版的目标是让同一份经过游戏观察检验的经验约束预测、技能、计划修复和上下文复用。它沿用接入模型的推理能力，学习发生在外部经验和执行程序中，不更新模型权重。研究依据和未完成的长期目标见 [持续学习说明](continual-learning.md)，具体测试证据见 [版本验证](validation-0.6.0.md)。
+This version uses the same game-observation-validated experience to constrain prediction, skills, plan repair and context reuse. Reasoning comes from the connected model; learning occurs in external experience and execution procedures, without updating model weights. See [continual learning](continual-learning.md) for research and long-term goals, and [version validation](validation-0.6.0.md) for evidence.
 
-## 公开观察入口
+## Public observation tools
 
-| 工具 | 当前可观察内容 | 边界 |
+| Tool | Observable content | Boundaries |
 | --- | --- | --- |
-| `inspect_block(x,y,z)` | 注册 ID、实例事实主体、维度、公开方块属性、方块实体类型；交互范围内可见面的标准能力 | 观察距离至多 16 格，不强制加载区块，不输出任意 NBT；能力读取还需满足交互距离与视线 |
-| `inspect_entity(entity_id)` | 可见且存活角色的注册类型、UUID、运行 ID、维度、公开名称、生命及状态效果 | 至多 16 格；不读取任务、阵营或对话的私有实现；运行 ID 不是持久身份 |
-| `inspect_item(inventory_slot)` | 实际携带物品的 ID、数量、耐久、使用动画、至多 16 个标签、12 行正常说明 | 原生库存槽位 0–40；每行至多 160 字符，截断会标明；不创建物品或倾倒数据组件 |
-| `inspect_gui` | 当前已打开菜单的通用槽位、布局，以及至多 12 项公开交易报价 | 不揭露未解锁任务，不模拟任意客户端按钮和私有网络协议 |
+| `inspect_block(x,y,z)` | Registered ID, instance fact subject, dimension, public block properties, block-entity type and standard capabilities on visible faces within reach | At most 16 blocks; no forced chunk loading or arbitrary NBT. Capability reads also require interaction distance and line of sight |
+| `inspect_entity(entity_id)` | Registered type, UUID, runtime ID, dimension, public name, health and effects of a visible living actor | At most 16 blocks; no private task/faction/dialogue internals. Runtime IDs are not persistent identities |
+| `inspect_item(inventory_slot)` | Carried item ID, count, durability, use animation, up to 16 tags and 12 normal tooltip lines | Native slots 0–40; at most 160 characters per line, with truncation marked; no item creation or component dumps |
+| `inspect_gui` | Generic slots/layout of the open menu and up to 12 public trade offers | No hidden quests, arbitrary client buttons or private network protocols |
 
-方块实例事实主体采用 `block:<dimension>:x,y,z`；角色采用 `entity:<UUID>`。角色观察事实短期有效，物品说明作为最后一次公开观察存入有界类型档案。说明文字是游戏数据，不能改变主人指令或工具权限，也不是经过验证的机制结论。
+Block-instance fact subjects are `block:<dimension>:x,y,z`; actor subjects are `entity:<UUID>`. Actor facts expire quickly. Item tooltips are retained as the latest public observation in bounded type profiles. Tooltip text is game data, not authority to change owner instructions or tool permissions, and not a verified mechanism conclusion.
 
-Fabric 读取标准 Transfer API 的物品/流体视图；流体保留 `fabric_droplets` 单位。NeoForge 读取 `IItemHandler`、`IFluidHandler`、`IEnergyStorage`，分别保留 `millibuckets` 与 `FE`。只调用查询，不插入、提取或模拟交易。不支持的通道、面不可用和读取失败均明确标注；它们不代表库存、流体或能量为零。Fabric 本版没有通用能量桥接。
+Fabric reads standard Transfer API item/fluid views and retains `fabric_droplets` units. NeoForge reads `IItemHandler`, `IFluidHandler` and `IEnergyStorage`, retaining `millibuckets` and `FE`. Reads only query; they do not insert, extract or simulate transactions. Unsupported channels, unavailable faces and read failures are explicit and do not mean zero contents or energy. This Fabric version has no generic energy bridge.
 
-一个模组只有同时提供可观察状态、可执行合法操作和可验收结果，才能进入这个通用学习闭环。拒绝 FakePlayer、客户端专有对话和自定义按键仍需专门适配；这些接口缺口不会被记作机制反例。
+A mod enters the generic learning loop only when it exposes observable state, legal executable actions and verifiable outcomes. FakePlayer rejection, client-only dialogue and custom keys need specific adapters; such gaps are not mechanism counterexamples.
 
-## 一次学习流程
+## A learning cycle
 
-1. 从主人目标中选择相关的未知对象，观察其真实身份、当前状态、所需输入和可用操作。
-2. 用 `explore_mechanism` 的 `predict` 比较已有经验，或用 `curriculum` 找到目标相关缺口。无数据时保留未知；概率与文字假设不授予执行权限。
-3. `propose` 提出一项可证伪实验，声明一个预期结果和已观察到的前提。原始值、类型和维度会在可得时自动加入守卫。原生方块/角色必须用观察到的注册 ID 作为 `subject`，改名不能绕过该对象类型的实验预算。
-4. 将返回实验的 `id` 作为 `experiment_id` 调用 `run`，通过现有服务器工具与调度器派发一次。角色探针会自动绑定 `expected_uuid`；如手工调用工具，必须使用实验返回的完整 `probe_arguments`。
-5. 等待权威任务完成，重新检查声明的结果。基线在动作前冻结；旧状态、重复心跳、工具失败和等待超时不能充当独立成功证据。
-6. `reflect` 返回结构化结果与下一步：观察、恢复前提、复制验证、测试替代假设、接口缺口或执行失败。它不凭空解释因果，也不自动派发新的实验。
-7. 在第二个物理独立设置中复核。两次独立支持、当前环境匹配且无冲突时，受支持动作可生成普通验证技能；重复同一设置或改写实验名称不增加独立支持数。
+1. Select a goal-relevant unknown object and observe its real identity, state, inputs and available operations.
+2. Use `explore_mechanism predict` to compare experience or `curriculum` to find goal-related gaps. Keep unknowns unknown; probabilities and textual hypotheses do not grant execution authority.
+3. `propose` declares a falsifiable experiment with one expected outcome and observed prerequisites. Before-values, types and dimensions become guards when available. Use the observed registered ID as `subject` for native blocks/actors; renaming cannot bypass type budgets.
+4. Pass the returned `id` as `experiment_id` to `run`, dispatching once through existing server tools/scheduling. Actor probes automatically bind `expected_uuid`; manual tool calls must use the full returned `probe_arguments`.
+5. Wait for authoritative completion and recheck the declared outcome. Freeze the baseline before acting. Old state, repeated heartbeats, tool failures and timeouts are not independent success evidence.
+6. `reflect` returns structured results and next steps: observe, restore prerequisites, replicate, test alternatives, identify an interface gap or report execution failure. It invents neither causal explanations nor new experiments.
+7. Repeat in a second physically independent setup. Two independent supports, a matching environment and no conflict can produce an ordinary verified skill for supported actions. Repeated setups or renamed experiments do not increase independent support.
 
-以下仅演示协议形状；`example:machine` 不是内置模组适配器。所有前提都必须已被当前观察证实，`close_gui` 仅关闭界面，不能恢复机器的全部物理状态。
+This example illustrates protocol shape only. `example:machine` is not a built-in adapter. Current observations must establish all prerequisites. `close_gui` closes a menu; it cannot restore a machine's entire physical state.
 
 ```json
 {
   "mode": "propose",
   "subject": "example:machine",
-  "hypothesis": "在已观察输入条件下使用设备，公开阶段由 0 变为 1",
+  "hypothesis": "Using the device with observed inputs changes its public stage from 0 to 1",
   "probe_tool": "interact_at",
   "probe_arguments": "{\"button\":\"use\",\"x\":10,\"y\":64,\"z\":5}",
   "expected_subject": "block:minecraft:overworld:10,64,5",
@@ -49,34 +49,34 @@ Fabric 读取标准 Transfer API 的物品/流体视图；流体保留 `fabric_d
 }
 ```
 
-工具最多接受 12 条显式前提，加自动守卫后最多 16 条。比较支持 `equals/present/at_least/at_most`。前提缺失或过期时先观察，已知不符时先恢复；派发前再次检查。中风险动作必须声明可恢复性和允许的补偿工具，但允许列表并不证明任意模组动作存在完整逆操作，补偿结果会单独记录。攻击变体、高风险操作和不可通用回滚的合成拒绝作为自主探针。
+Tools accept up to 12 explicit prerequisites, or 16 including automatic guards. Comparisons are `equals/present/at_least/at_most`. Observe missing/expired facts, restore known mismatches and recheck before dispatch. Medium-risk actions need declared reversibility and an allowed compensation tool. Being on an allowlist does not establish a full inverse for arbitrary mod actions; record compensation separately. Attack variants, high-risk actions and crafting without generic rollback are rejected as autonomous probes.
 
-## 迁移、规划与重学
+## Transfer, planning and relearning
 
-- `transfer(rule_id,target_subject)` 检查目标的公开注册类型、当前维度和全部条件，返回 `skillName` 与 `overrides`。将它们传给 `execute_skill`；动作坐标或实体 ID/UUID 与验收主体共同绑定。名称相似不能替代类型和条件证据，执行阶段还会重新检查并验证效果。
-- `predict/plan` 查询条件经验时，传入 `expected_subject`、`expected_predicate`、`before_value` 以及与实验一致的 `prerequisites`。类型和维度自动补入。不同非空间参数、输入条件、单位、物品产出 ID 不混用；前值单独建模，使 `0→1` 和 `1→2` 能在相同适用条件下组合。
-- `plan` 只建议同一状态谓词上的短路线，最多 6 步、64 次展开。它不模拟完整 Minecraft。长程目标仍由 `todowrite` 的依赖图、实时前提和最终 `goal_conditions` 驱动。
-- `repair` 从最多 64 条当前可复用经验搜索缺口修复，最多 8 步、128 次展开；`apply=true` 才修改图，且需执行器空闲。响应的 `applied` 明确表示是否应用成功。已完成历史、独立待办分支、约束和顶层目标保留；不能推断未声明的资源产出。
-- 一条新观察也会检查同条件下的竞争结果规则；即使新假设得到支持，也会撤销与该观察冲突的旧技能及其计划依赖。缺失后条件可使规则进入待复核，不能被宣称为已证明的因果变化。
+- `transfer(rule_id,target_subject)` checks public registered type, current dimension and all conditions, returning `skillName` and `overrides` for `execute_skill`. Action coordinates or entity ID/UUID bind together with the acceptance subject. Similar names cannot replace type/condition evidence. Execution rechecks conditions and effects.
+- For conditional `predict/plan`, pass `expected_subject`, `expected_predicate`, `before_value` and the experiment's `prerequisites`. Type and dimension are added automatically. Different non-spatial arguments, input conditions, units and output item IDs stay separate. Before-values are modeled separately so `0→1` and `1→2` can compose under the same conditions.
+- `plan` suggests routes on one state predicate, at most six steps and 64 expansions. It does not simulate all Minecraft. Long goals still use `todowrite` dependency graphs, live prerequisites and final `goal_conditions`.
+- `repair` searches up to 64 reusable experiences for a gap repair, at most eight steps and 128 expansions. Only `apply=true` changes the graph, and the executor must be idle. `applied` explicitly reports success. Completed history, independent branches, constraints and top-level goals remain; undeclared resource outputs cannot be invented.
+- A new observation also checks competing outcome rules under the same conditions. Even support for a new hypothesis revokes conflicting old skills and plan dependencies. Missing postconditions may require review, but do not prove causal rule change.
 
-每个机制的普通窗口有 12 单位、最多 6 个提案，状态改变探针至少花 4 单位，提案时扣除，取消不退还。已确认规则出现反例或适配技能后条件失败时，只能获得一次恢复补充：增加 8 单位、剩余上限仍为 12，并增加 2 次提案额度。配额随检查点保存；查询、重复失败、重复回调不续杯。距该机制最后预算更新达到 24,000 游戏 tick、环境指纹变化或世界时钟回退时开启新窗口。
+A normal per-mechanism window has 12 cost units and at most six proposals. State-changing probes cost at least four units, deducted on proposal without cancellation refunds. A confirmed-rule counterexample or adapted-skill postcondition failure grants one recovery supplement: eight units, capped at 12 remaining, and two extra proposals. Checkpoints retain quotas; queries, repeated failures and duplicate callbacks do not refill them. A new window begins after 24,000 game ticks since the last budget update, a fingerprint change or clock rollback.
 
-重学保留原始实验审计，在首个新支持时开始相应预测条件的新验证窗口；两份新独立支持后才能恢复复用。这同样适用于规则改变后学习另一个结果，不必持续预测已被证伪的旧结果。
+Relearning retains raw audit records and starts a new predictive-condition verification window on the first fresh support. Two new independent supports are required before reuse. This also permits learning another outcome after a rule change without continually predicting the disproven outcome.
 
-成功数据重载在两个加载器都接入生命周期：停止旧探针、取消学习执行、撤销规则资格、清空预测和预算，并请求在有活动目标时重规划。尚未建立精确的数据依赖索引，因此重载采用保守全局失效；普通单条反例按条件契约局部失效。迟到的旧回调不能恢复旧规则。单个玩家加入触发的 NeoForge 数据同步不会被当作全局重载。
+Both loaders handle successful data reloads: stop old probes, cancel learning execution, revoke rules, clear predictions/budgets and request replanning for active goals. Without a precise dependency index, reload conservatively invalidates all rules; individual counterexamples invalidate conflicting condition contracts locally. Late callbacks cannot restore old rules. NeoForge data synchronization for a joining player is not a global reload.
 
-## 记忆、缓存与模型接入
+## Memory, caching and model integration
 
-记忆封装版本为 14，条件上下文格式为 2。v0.5.0 及更早规则保留审计记录，但清零支持、移除适配技能并清空旧预测，需重新验证；活跃任务和行动就绪状态不跨重启恢复。清空学习状态也会撤销旧技能资格。新版本数据不承诺可被旧版本读取。
+Memory envelope format is 14; condition-context format is 2. v0.5.0 and earlier rules retain audits but lose supports, adaptation skills and predictions until revalidated. Active tasks and readiness authority do not survive restart. Clearing learning also revokes old skills. Older versions are not guaranteed to read new data.
 
-经验引用只在当前相关规则内容变化时追加到伙伴独立的对话历史。实时状态仍在请求尾部，历史压缩后重新发布引用；不把完整经验在每次心跳中重复展开。它改善前缀稳定性，不重放旧动作，也不跳过当前条件检查。`explore_mechanism metrics` 同时显示引用发布/复用计数。
+Experience references append to companion-specific conversation history only when relevant rule content changes. Live state stays at the request tail; references are republished after history compaction. Full experience is not repeated every heartbeat. This improves prefix stability without replaying actions or skipping current checks. `explore_mechanism metrics` shows reference publication/reuse counts.
 
-Chat Completions、Responses 与 Anthropic 用量解析区分缓存读、写的上报状态。其他原生 Provider 的旧计数保持兼容：正值可确认有报告，默认零值不能确认实际命中为零。指标给出报告覆盖率，命中率仅针对有报告的流量；完全缺失时为 `null`。格式错误、负数、小数或空值不使有效模型回答失败；大整数饱和处理。
+Chat Completions, Responses and Anthropic usage parsing distinguish cache-read/write reporting states. Legacy counters in other native Providers remain compatible: positive counts confirm reporting, but default zero does not confirm an actual zero hit count. Metrics report coverage and hit rates only over reported traffic; completely missing data is `null`. Malformed, negative, fractional or null usage does not discard valid model answers; large integers saturate.
 
-前缀结构调整可以用于官方 API、中转与本地模型。缓存资格、缓存门槛和收费仍由端点决定，不向未知兼容服务强制发送厂商专属字段。[OpenAI 缓存文档](https://developers.openai.com/api/docs/guides/prompt-caching) 与 [Anthropic 缓存文档](https://platform.claude.com/docs/en/build-with-claude/prompt-caching) 的模式、有效期和读写价格并不统一。本版没有伪造通用价格表，也没有进行付费账单实验。
+Prefix restructuring works with official APIs, relays and local models. Endpoints control eligibility, thresholds and prices; unknown compatible services are not forced to accept vendor-specific fields. [OpenAI](https://developers.openai.com/api/docs/guides/prompt-caching) and [Anthropic](https://platform.claude.com/docs/en/build-with-claude/prompt-caching) differ in cache modes, lifetimes and read/write pricing. This version invents neither a universal price table nor paid billing results.
 
-## 差异化与验证范围
+## Differentiation and validation scope
 
-本版形成的是“同一份可证伪经验贯穿执行资格、修复、复用和重学成本”的工程设计。测试专用模组隐藏其触发规则，学习器只通过生产观察工具和物理交互获取结果；随后改变规则并在固定恢复配额内学习新结果。原生测试夹具不进入生产 JAR，源码和 XML 报告可以审查。
+The engineering design makes the same falsifiable experience constrain execution authority, repair, reuse and relearning cost. A test-only mod hides its trigger rules; the learner obtains results through production observations and physical interactions. The evaluator then changes rules and tests recovery within a fixed allowance. Fixtures stay out of production JARs; source and XML reports are inspectable.
 
-这提供了可继续研究的差异化基础，没有证明算法首创、外部项目优越性、任意模组兼容、长期玩法熟练度或 AGI。外部整合包的学习效率、迁移收益、遗忘率、危险反应和每个成功任务的实际成本，需要固定模型与预算、留出机制族及多次独立对照实验。
+This provides a basis for further research, not proof of algorithmic novelty, superiority, arbitrary mod compatibility, long-term gameplay mastery or AGI. External-modpack learning efficiency, transfer gains, forgetting, danger responses and actual cost per successful task require fixed models/budgets, held-out mechanism families and repeated independent controlled experiments.

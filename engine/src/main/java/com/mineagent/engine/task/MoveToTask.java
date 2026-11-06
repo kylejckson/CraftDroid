@@ -128,7 +128,7 @@ public class MoveToTask extends CompanionTask<MoveToTool.MoveToTaskRecord>
         // Check if the lease has expired
         if (lease.isExpired(gameTime)) {
             String reason = lease.expirationReason(gameTime);
-            System.out.println("[MineAgent] MoveTo lease expired: " + reason);
+            System.out.println("[CraftDroid] MoveTo lease expired: " + reason);
             nav.cancel();
             TaskContext.inputDriver(player).clear();
             failReason = "Navigation lease expired: " + reason;

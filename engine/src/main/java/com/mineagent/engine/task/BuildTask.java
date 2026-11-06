@@ -287,7 +287,7 @@ public class BuildTask extends CompanionTask<BuildTool.BuildTaskRecord>
                 failReason = "Failed to place block at (" + pos[0] + ","
                         + pos[1] + "," + pos[2] + "): " + lastPlaceFailure
                         + "; player=" + sp.blockPosition();
-                System.err.println("[MineAgent] " + failReason
+                System.err.println("[CraftDroid] " + failReason
                         + "; requested=" + record.blockType
                         + "; held=" + sp.getMainHandItem());
                 phase = Phase.DONE;

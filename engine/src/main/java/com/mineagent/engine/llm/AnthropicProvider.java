@@ -54,17 +54,17 @@ public class AnthropicProvider implements LLMProvider {
     @Override
     public List<String> defaultModels() {
         return List.of(
-                // Claude Fable 5 (2026年6月旗舰，1M上下文)
+                // Claude Fable 5 (June 2026 flagship; 1M context).
                 "claude-fable-5",
-                // Claude Opus 5 (2026年7月24日发布，1M上下文，128K输出，半价逼近Fable 5)
+                // Claude Opus 5 (released July 24, 2026; 1M context, 128K output; approaches Fable 5 at half the price).
                 "claude-opus-5",
-                // Claude Opus 4.8 (1M上下文)
+                // Claude Opus 4.8 (1M context).
                 "claude-opus-4-8",
                 // Claude Opus 4.7
                 "claude-opus-4-7",
                 // Claude Sonnet 5
                 "claude-sonnet-5",
-                // Claude 4.6 系列
+                // Claude 4.6 family.
                 "claude-sonnet-4-6", "claude-opus-4-6",
                 // Claude Opus 4.5
                 "claude-opus-4-5-20251101",
@@ -74,7 +74,7 @@ public class AnthropicProvider implements LLMProvider {
                 "claude-opus-4-20250514",
                 // Claude 3.7 Sonnet
                 "claude-3-7-sonnet-20250219",
-                // Claude 3.5 系列
+                // Claude 3.5 family.
                 "claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022",
                 // Claude Haiku 4.5
                 "claude-haiku-4-5-20251001"
@@ -329,7 +329,7 @@ public class AnthropicProvider implements LLMProvider {
                     // 1024 and also requires budget_tokens < max_tokens. With
                     // max_tokens <= 1024 no valid budget exists, so omitting
                     // thinking is the only request that Anthropic will accept.
-                    System.err.println("[MineAgent] Anthropic thinking disabled because "
+                    System.err.println("[CraftDroid] Anthropic thinking disabled because "
                             + "maxTokens=" + maxTokens + " is too small");
                 }
             }

@@ -114,7 +114,7 @@ public class MineAgentNeoForge {
                                     payload.companionId(), payload.pathNodes(),
                                     payload.currentNode(), payload.pathStatus())));
 
-            System.out.println("[MineAgent] NeoForge module initialized");
+            System.out.println("[CraftDroid] NeoForge module initialized");
         });
     }
 

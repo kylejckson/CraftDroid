@@ -12,7 +12,7 @@ import net.minecraft.world.level.block.Blocks;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Data generator for MineAgent block tags.
+ * Data generator for CraftDroid block tags.
  * <p>
  * Creates tags used by the pathfinding and survival systems:
  * <ul>

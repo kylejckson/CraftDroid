@@ -25,7 +25,7 @@ for mod in lock["mods"]:
         raise ValueError("Unsafe test dependency location")
     path = destination / filename
     if not path.exists() or hashlib.sha512(path.read_bytes()).hexdigest() != mod["sha512"]:
-        request = urllib.request.Request(mod["url"], headers={"User-Agent": "MineAgent-test-harness/1.0 (github.com/bingdongni/MineAgent)"})
+        request = urllib.request.Request(mod["url"], headers={"User-Agent": "CraftDroid-test-harness/1.0 (github.com/kylejckson/CraftDroid)"})
         data = urllib.request.urlopen(request, timeout=120).read()
         if hashlib.sha512(data).hexdigest() != mod["sha512"]:
             raise ValueError("Dependency checksum mismatch: " + filename)

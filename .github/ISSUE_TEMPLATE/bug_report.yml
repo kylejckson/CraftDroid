@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible MineAgent defect
+description: Report a reproducible CraftDroid defect
 title: "[Bug]: "
 labels: [bug]
 body:
@@ -21,7 +21,7 @@ body:
   - type: input
     id: mineagent-version
     attributes:
-      label: MineAgent version
+      label: CraftDroid version
       placeholder: 0.2.5
     validations:
       required: true

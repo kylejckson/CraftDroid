@@ -2,9 +2,9 @@
 
 ## Reporting a vulnerability
 
-Do not report vulnerabilities, API keys, or private logs in a public issue. Use a private [GitHub Security Advisory](https://github.com/bingdongni/MineAgent/security/advisories/new) and include:
+Do not report vulnerabilities, API keys, or private logs in a public issue. Use a private [GitHub Security Advisory](https://github.com/kylejckson/CraftDroid/security/advisories/new) and include:
 
-- affected MineAgent version and loader;
+- affected CraftDroid version and loader;
 - impact and realistic attack scenario;
 - minimal reproduction steps or proof of concept;
 - suggested mitigation, if known;
@@ -14,7 +14,7 @@ The maintainer will assess reports on a best-effort basis. Please allow time for
 
 ## Sensitive local data
 
-MineAgent currently stores LLM API keys as plain text in:
+CraftDroid currently stores LLM API keys as plain text in:
 
 - `config/mineagent.json`;
 - `<world>/data/mineagent_companions.json`.

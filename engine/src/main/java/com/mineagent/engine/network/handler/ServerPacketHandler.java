@@ -55,7 +55,7 @@ public final class ServerPacketHandler {
                 MineAgentEngine.getCompanion(payload.companionId());
 
         if (companionState.isEmpty()) {
-            System.err.println("[MineAgent] ExecuteTool: companion not found: "
+            System.err.println("[CraftDroid] ExecuteTool: companion not found: "
                     + payload.companionId());
             sendToolResult(sender, payload, false, "Companion not found");
             return;
@@ -65,7 +65,7 @@ public final class ServerPacketHandler {
 
         // Verify the sender owns this companion
         if (!companion.serverPlayerOwner().getUUID().equals(sender.getUUID())) {
-            System.err.println("[MineAgent] ExecuteTool: player "
+            System.err.println("[CraftDroid] ExecuteTool: player "
                     + sender.getName().getString()
                     + " does not own companion " + payload.companionId());
             sendToolResult(sender, payload, false, "Companion not found or not owned");
@@ -75,7 +75,7 @@ public final class ServerPacketHandler {
         // Look up the tool
         Optional<Tool> toolOpt = ToolRegistry.get(payload.toolName());
         if (toolOpt.isEmpty()) {
-            System.err.println("[MineAgent] ExecuteTool: unknown tool: "
+            System.err.println("[CraftDroid] ExecuteTool: unknown tool: "
                     + payload.toolName());
             sendToolResult(sender, payload, false,
                     "Unknown tool: " + payload.toolName());
@@ -89,7 +89,7 @@ public final class ServerPacketHandler {
         try {
             args = JsonParser.parseString(payload.arguments()).getAsJsonObject();
         } catch (Exception e) {
-            System.err.println("[MineAgent] ExecuteTool: invalid arguments: "
+            System.err.println("[CraftDroid] ExecuteTool: invalid arguments: "
                     + e.getMessage());
             sendToolResult(sender, payload, false, "Invalid arguments: " + e.getMessage());
             return;
@@ -103,7 +103,7 @@ public final class ServerPacketHandler {
                 boolean success = isSuccessfulToolResult(result);
                 sendToolResult(sender, payload, success,
                         result != null ? result : "{}");
-                System.out.println("[MineAgent] Tool " + payload.toolName()
+                System.out.println("[CraftDroid] Tool " + payload.toolName()
                         + " completed for companion " + payload.companionId());
             });
         } catch (Throwable failure) {
@@ -134,7 +134,7 @@ public final class ServerPacketHandler {
                 MineAgentEngine.getCompanion(payload.companionId());
 
         if (companionState.isEmpty()) {
-            System.err.println("[MineAgent] CancelTasks: companion not found: "
+            System.err.println("[CraftDroid] CancelTasks: companion not found: "
                     + payload.companionId());
             return;
         }
@@ -143,7 +143,7 @@ public final class ServerPacketHandler {
 
         // Verify ownership
         if (!state.companion.serverPlayerOwner().getUUID().equals(sender.getUUID())) {
-            System.err.println("[MineAgent] CancelTasks: player does not own companion");
+            System.err.println("[CraftDroid] CancelTasks: player does not own companion");
             return;
         }
 
@@ -153,7 +153,7 @@ public final class ServerPacketHandler {
         // Cancel the current agent loop turn
         state.loop.cancel();
 
-        System.out.println("[MineAgent] All tasks cancelled for companion "
+        System.out.println("[CraftDroid] All tasks cancelled for companion "
                 + payload.companionId());
     }
 
@@ -245,7 +245,7 @@ public final class ServerPacketHandler {
                 var cfg = MineAgentEngine.getConfig();
                 String apiKey = cfg.llm().apiKey();
                 String rawName = cfg.companion().name();
-                String name = (rawName == null || rawName.isBlank() || "MineAgent".equals(rawName))
+                String name = (rawName == null || rawName.isBlank() || "CraftDroid".equals(rawName))
                         ? cfg.llm().model() : rawName;
                 MineAgentEngine.spawnCompanion(sender, name, cfg.llm().provider(),
                         apiKey, cfg.llm().model(),
@@ -295,7 +295,7 @@ public final class ServerPacketHandler {
                 MineAgentEngine.getCompanion(payload.companionId());
 
         if (companionState.isEmpty()) {
-            System.err.println("[MineAgent] ClientUiAction: companion not found: "
+            System.err.println("[CraftDroid] ClientUiAction: companion not found: "
                     + payload.companionId());
             return;
         }
@@ -304,7 +304,7 @@ public final class ServerPacketHandler {
 
         // Verify ownership
         if (!state.companion.serverPlayerOwner().getUUID().equals(sender.getUUID())) {
-            System.err.println("[MineAgent] ClientUiAction: player does not own companion");
+            System.err.println("[CraftDroid] ClientUiAction: player does not own companion");
             return;
         }
 
@@ -312,19 +312,19 @@ public final class ServerPacketHandler {
             case "set_game_mode" -> {
                 CompanionGameMode mode = CompanionGameMode.parse(data).orElse(null);
                 if (mode == null) {
-                    System.err.println("[MineAgent] Invalid companion game mode: " + data);
+                    System.err.println("[CraftDroid] Invalid companion game mode: " + data);
                     return;
                 }
                 if (!MineAgentEngine.setCompanionGameModeByOwner(sender,
                         payload.companionId(), mode)) {
-                    System.err.println("[MineAgent] Game mode change rejected for companion "
+                    System.err.println("[CraftDroid] Game mode change rejected for companion "
                             + payload.companionId());
                 }
             }
             case "open_chat" -> {
                 // The client handles opening the chat UI; this is a no-op on
                 // the server side but we log it for awareness
-                System.out.println("[MineAgent] Player " + sender.getName().getString()
+                System.out.println("[CraftDroid] Player " + sender.getName().getString()
                         + " opened chat for companion " + payload.companionId());
             }
             case "toggle_reflex" -> {
@@ -346,7 +346,7 @@ public final class ServerPacketHandler {
                         } else if ("false".equalsIgnoreCase(rawState)) {
                             explicitState = false;
                         } else {
-                            System.err.println("[MineAgent] Invalid reflex state: " + rawState);
+                            System.err.println("[CraftDroid] Invalid reflex state: " + rawState);
                             return;
                         }
                     }
@@ -362,35 +362,35 @@ public final class ServerPacketHandler {
                         } else {
                             reflex.get().disable(state.companion);
                         }
-                        System.out.println("[MineAgent] Reflex '" + reflexId + "' "
+                        System.out.println("[CraftDroid] Reflex '" + reflexId + "' "
                                 + (target ? "enabled" : "disabled")
                                 + " for companion " + payload.companionId());
                     } else {
-                        System.err.println("[MineAgent] Unknown reflex: " + reflexId);
+                        System.err.println("[CraftDroid] Unknown reflex: " + reflexId);
                     }
                 }
             }
             case "remove_companion" -> {
                 MineAgentEngine.despawnCompanion(payload.companionId(), true);
-                System.out.println("[MineAgent] Companion " + payload.companionId()
+                System.out.println("[CraftDroid] Companion " + payload.companionId()
                         + " removed by owner");
             }
             case "pause" -> {
                 state.auction.cancelTask();
                 state.lifecycle.pauseByOwner();
-                System.out.println("[MineAgent] Companion " + payload.companionId()
+                System.out.println("[CraftDroid] Companion " + payload.companionId()
                         + " paused by owner");
             }
             case "resume" -> {
                 if (state.lifecycle.resumeByOwner()) {
-                    System.out.println("[MineAgent] Companion " + payload.companionId()
+                    System.out.println("[CraftDroid] Companion " + payload.companionId()
                             + " resumed by owner");
                 } else {
                     sender.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                            "§c[MineAgent] Dead companions must be respawned first."));
+                            "§c[CraftDroid] Dead companions must be respawned first."));
                 }
             }
-            default -> System.err.println("[MineAgent] Unknown UI action: " + action);
+            default -> System.err.println("[CraftDroid] Unknown UI action: " + action);
         }
     }
 }

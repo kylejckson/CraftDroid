@@ -1,5 +1,5 @@
 {
-  "key.categories.mineagent": "MineAgent",
+  "key.categories.mineagent": "CraftDroid",
   "key.mineagent.open_menu": "Open control panel",
   "key.mineagent.open_chat": "Open companion chat",
   "key.mineagent.toggle_status_hud": "Toggle companion status panel",
@@ -23,7 +23,7 @@
   "screen.mineagent.create.save_and_create": "Save & Create",
   "screen.mineagent.create.name_hint": "Blank uses the model name",
   "screen.mineagent.runtime.title": "Runtime Settings",
-  "screen.mineagent.runtime.applied": "[MineAgent] Runtime settings applied.",
+  "screen.mineagent.runtime.applied": "[CraftDroid] Runtime settings applied.",
   "screen.mineagent.preset.custom": "Custom compatible service",
   "screen.mineagent.protocol_hint": "Protocol adapter ID",
   "screen.mineagent.model_hint": "Model ID",
@@ -116,13 +116,13 @@
   "screen.mineagent.hud.task": "Task: %s",
   "screen.mineagent.hud.position": "Pos: %s, %s, %s",
 
-  "screen.mineagent.error.model": "[MineAgent] A model ID is required.",
-  "screen.mineagent.error.apikey": "[MineAgent] No API key is stored; enter one before creating.",
-  "screen.mineagent.error.baseurl": "[MineAgent] The endpoint must be a complete HTTP(S) URL without query or fragment.",
-  "screen.mineagent.error.setup": "[MineAgent] A setup field is invalid or too long.",
-  "screen.mineagent.error.effort": "[MineAgent] Effort must be off, low, medium, high, xhigh or max.",
-  "screen.mineagent.error.temperature": "[MineAgent] Temperature must be a number from 0 to 2.",
-  "screen.mineagent.error.no_changes": "[MineAgent] Enter at least one setting to change.",
-  "screen.mineagent.error.skin_name": "[MineAgent] Player names use 1-16 letters, numbers or underscores.",
+  "screen.mineagent.error.model": "[CraftDroid] A model ID is required.",
+  "screen.mineagent.error.apikey": "[CraftDroid] No API key is stored; enter one before creating.",
+  "screen.mineagent.error.baseurl": "[CraftDroid] The endpoint must be a complete HTTP(S) URL without query or fragment.",
+  "screen.mineagent.error.setup": "[CraftDroid] A setup field is invalid or too long.",
+  "screen.mineagent.error.effort": "[CraftDroid] Effort must be off, low, medium, high, xhigh or max.",
+  "screen.mineagent.error.temperature": "[CraftDroid] Temperature must be a number from 0 to 2.",
+  "screen.mineagent.error.no_changes": "[CraftDroid] Enter at least one setting to change.",
+  "screen.mineagent.error.skin_name": "[CraftDroid] Player names use 1-16 letters, numbers or underscores.",
   "message.mineagent.game_mode_changed": "%s game mode changed to %s."
 }

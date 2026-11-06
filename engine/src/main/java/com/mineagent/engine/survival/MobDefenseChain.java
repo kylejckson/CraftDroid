@@ -87,7 +87,7 @@ public final class MobDefenseChain implements TaskChain {
                     companion.health(), sp.getMaxHealth(), threats.size());
             return canFight ? urgency : Math.max(PRIORITY_FLEE, urgency);
         } catch (Exception e) {
-            System.err.println("[MineAgent] MobDefense getPriority error: " + e.getMessage());
+            System.err.println("[CraftDroid] MobDefense getPriority error: " + e.getMessage());
         }
         return Float.NEGATIVE_INFINITY;
     }
@@ -147,7 +147,7 @@ public final class MobDefenseChain implements TaskChain {
                 }
             }
         } catch (Exception e) {
-            System.err.println("[MineAgent] MobDefense tick error: " + e.getMessage());
+            System.err.println("[CraftDroid] MobDefense tick error: " + e.getMessage());
             reset();
         }
     }
